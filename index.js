@@ -28,13 +28,30 @@ module.exports = {
             sublabel:
               "Which state variable to capture in printed page. Separate by comma.",
           },
+          {
+            name: "to_file",
+            label: "Save to file",
+            type: "Bool",
+          },
+          {
+            name: "landscape",
+            label: "Landscape",
+            type: "Bool",
+          },
+          {
+            name: "format",
+            label: "Format",
+            type: "String",
+            required: true,
+            attributes: { options: ["A4", "Letter", "Legal"] },
+          },
         ];
       },
       run: async ({
         row,
         referrer,
         req,
-        configuration: { page, statevars },
+        configuration: { page, statevars, to_file, landscape, format },
       }) => {
         const qstate = {};
         const xfer_vars = new Set(
@@ -59,8 +76,20 @@ module.exports = {
             ? "/usr/bin/chromium-browser"
             : undefined;
 
-          let options = { format: "A4", executablePath };
-          return await renderPdfToStream(html, req, thePage, options);
+          let options = {
+            format,
+            landscape,
+            margins: {
+              top: "2cm",
+              bottom: "2cm",
+              left: "2cm",
+              right: "2cm",
+            },
+            executablePath,
+          };
+          if (to_file)
+            return await renderPdfToFile(html, req, thePage, options);
+          else return await renderPdfToStream(html, req, thePage, options);
         }
       },
     },
