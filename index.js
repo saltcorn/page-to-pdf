@@ -1,5 +1,5 @@
 const Workflow = require("@saltcorn/data/models/workflow");
-const Form = require("@saltcorn/data/models/form");
+const File = require("@saltcorn/data/models/file");
 const Page = require("@saltcorn/data/models/page");
 const { getState } = require("@saltcorn/data/db/state");
 const db = require("@saltcorn/data/db");
@@ -16,7 +16,7 @@ module.exports = {
         const pages = await Page.find();
         return [
           {
-            name: "page",
+            name: "page", 
             label: "Page",
             type: "String",
             attributes: { options: pages.map((p) => p.name) },
@@ -54,8 +54,22 @@ module.exports = {
           const executablePath = fs.existsSync("/usr/bin/chromium-browser")
             ? "/usr/bin/chromium-browser"
             : undefined;
-          let options = { format: "A4", path: "/tmp/page.pdf", executablePath };
-          return await generatePdf({ content: html }, options);
+          const path = File.get_new_path()
+          let options = { format: "A4", path, executablePath };
+          await generatePdf({ content: html }, options);
+          const stats = fs.statSync(path)
+          const file = await File.create({
+            location: path,
+            uploaded_at: new Date(),
+            filename: thePage.name+".pdf",
+            user_id: (req.user || {}).id,
+            size_kb:  Math.round(stats.size/1024),
+            mime_super: "application",
+            mime_sub: "pdf",
+            min_role_read: thePage.min_role
+
+          })
+          return { goto: `/files/serve/${file.id}`, target: "_blank" };
         }
       },
     },
