@@ -58,28 +58,41 @@ module.exports = {
           const executablePath = fs.existsSync("/usr/bin/chromium-browser")
             ? "/usr/bin/chromium-browser"
             : undefined;
-          const path = File.get_new_path()
-          let options = { format: "A4", path, executablePath };
-          await generatePdf({ content: html }, options);
-          const stats = fs.statSync(path)
-          const file = await File.create({
-            location: path,
-            uploaded_at: new Date(),
-            filename: thePage.name+".pdf",
-            user_id: (req.user || {}).id,
-            size_kb:  Math.round(stats.size/1024),
-            mime_super: "application",
-            mime_sub: "pdf",
-            min_role_read: thePage.min_role
-
-          })
-          return { goto: `/files/serve/${file.id}`, target: "_blank" };
+          
+          let options = { format: "A4", executablePath };
+          return await renderPdfToStream(html, req, thePage, options)
         }
       },
     },
   },
 };
 
+const renderPdfToStream = async (html, req, thePage, options)=>{
+  const pdfBuffer = await generatePdf({ content: html }, options);
+  
+  return { download: {
+    blob: pdfBuffer.toString('base64'),
+    //filename: thePage.name+".pdf",
+    mimetype: "application/pdf"
+  }};
+}
+const renderPdfToFile=async (html, req, thePage, options)=>{
+  options.path = File.get_new_path()
+  await generatePdf({ content: html }, options);
+  const stats = fs.statSync(path)
+  const file = await File.create({
+    location: path,
+    uploaded_at: new Date(),
+    filename: thePage.name+".pdf",
+    user_id: (req.user || {}).id,
+    size_kb:  Math.round(stats.size/1024),
+    mime_super: "application",
+    mime_sub: "pdf",
+    min_role_read: thePage.min_role
+
+  })
+  return { goto: `/files/serve/${file.id}`, target: "_blank" };
+}
 const renderPage = async (contents, page, baseUrl, req) => {
   const state = getState();
   const layout = state.getLayout(req.user);
