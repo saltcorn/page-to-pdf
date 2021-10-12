@@ -43,13 +43,17 @@ module.exports = {
             .map((s) => s.trim())
             .filter((s) => s)
         );
-        for (const [name, value] of new URL(referrer || "").searchParams) {
+        const refUrl = new URL(referrer || "")
+
+        for (const [name, value] of refUrl.searchParams) {
           if (xfer_vars.has(name)) qstate[name] = value;
         }
         const thePage = await Page.findOne({ name: page });
         if (thePage) {
           const contents = await thePage.run(qstate, { res: {}, req });
-          const html = await renderPage(contents, thePage, req);
+          const html = await renderPage(contents, thePage, refUrl.origin, req);
+          //console.log(refUrl);
+          //console.log(html);
 
           const executablePath = fs.existsSync("/usr/bin/chromium-browser")
             ? "/usr/bin/chromium-browser"
@@ -76,7 +80,7 @@ module.exports = {
   },
 };
 
-const renderPage = async (contents, page, req) => {
+const renderPage = async (contents, page, baseUrl, req) => {
   const state = getState();
   const layout = state.getLayout(req.user);
   const version_tag = db.connectObj.version_tag;
@@ -97,7 +101,7 @@ const renderPage = async (contents, page, req) => {
     });
   const role = (req.user || {}).role_id || 10;
 
-  return layout.wrap({
+  const htmlOut= layout.wrap({
     title: page.title,
     brand: {},
     menu: [],
@@ -108,4 +112,5 @@ const renderPage = async (contents, page, req) => {
     role,
     req,
   });
+  return htmlOut.replace("<head>", `<head><base href="${baseUrl}" />`);
 };
