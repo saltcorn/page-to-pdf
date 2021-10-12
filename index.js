@@ -77,7 +77,7 @@ module.exports = {
             : undefined;
 
           let options = {
-            format,
+            format: format || "A4",
             landscape,
             margins: {
               top: "2cm",
