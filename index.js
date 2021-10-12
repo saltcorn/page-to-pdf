@@ -50,7 +50,11 @@ module.exports = {
         if (thePage) {
           const contents = await thePage.run(qstate, { res: {}, req });
           const html = await renderPage(contents, thePage, req);
-          let options = { format: "A4", path: "/tmp/page.pdf" };
+
+          const executablePath = fs.existsSync("/usr/bin/chromium-browser")
+            ? "/usr/bin/chromium-browser"
+            : undefined;
+          let options = { format: "A4", path: "/tmp/page.pdf", executablePath };
           return await generatePdf({ content: html }, options);
         }
       },
