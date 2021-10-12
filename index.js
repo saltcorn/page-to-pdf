@@ -1,6 +1,9 @@
 const Workflow = require("@saltcorn/data/models/workflow");
 const Form = require("@saltcorn/data/models/form");
 const Page = require("@saltcorn/data/models/page");
+const { getState } = require("@saltcorn/data/db/state");
+const db = require("@saltcorn/data/db");
+
 const { URL } = require("url");
 
 module.exports = {
@@ -31,15 +34,52 @@ module.exports = {
         req,
         configuration: { page, statevars },
       }) => {
-        const state = {};
+        const qstate = {};
+        const xfer_vars = new Set(
+          (statevars || "")
+            .split(",")
+            .map((s) => s.trim())
+            .filter((s) => s)
+        );
         for (const [name, value] of new URL(referrer || "").searchParams) {
-          state[name] = value;
+          if (xfer_vars.has(name)) qstate[name] = value;
         }
-        console.log(state);
         const thePage = await Page.findOne({ name: page });
         if (thePage) {
-          const contents = await thePage.run(state, { res: {}, req });
-          console.log(contents);
+          const contents = await thePage.run(qstate, { res: {}, req });
+          const state = getState();
+          const layout = state.getLayout(req.user);
+          const version_tag = db.connectObj.version_tag;
+
+          const headers = [
+            ...state.headers,
+            {
+              headerTag: `<script>var _sc_globalCsrf = "${req.csrfToken()}"; var _sc_version_tag = "${version_tag}";</script>`,
+            },
+            { css: `/static_assets/${version_tag}/saltcorn.css` },
+            { script: `/static_assets/${version_tag}/saltcorn.js` },
+          ];
+          if (state.getConfig("page_custom_css", ""))
+            headers.push({ style: state.getConfig("page_custom_css", "") });
+          if (state.getConfig("page_custom_html", ""))
+            headers.push({
+              headerTag: state.getConfig("page_custom_html", ""),
+            });
+          const role = (req.user || {}).role_id || 10;
+
+          const html = layout.wrap({
+            title: page.title,
+            brand: {},
+            menu: [],
+            currentUrl: "",
+            alerts: [],
+            body: contents,
+            headers,
+            role,
+            req,
+          });
+
+          console.log(html);
         }
       },
     },
