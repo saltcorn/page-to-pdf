@@ -112,5 +112,5 @@ const renderPage = async (contents, page, baseUrl, req) => {
     role,
     req,
   });
-  return htmlOut.replace("<head>", `<head><base href="${baseUrl}" />`);
+  return htmlOut.replace("<head>", `<head><base href="${baseUrl}">`);
 };
