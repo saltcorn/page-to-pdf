@@ -5,7 +5,7 @@ const { getState } = require("@saltcorn/data/db/state");
 const db = require("@saltcorn/data/db");
 
 const { URL } = require("url");
-const { generatePdf } = require("html-pdf-node");
+const { generatePdf } = require("@saltcorn/html-pdf-node");
 const fs = require("fs");
 
 module.exports = {
