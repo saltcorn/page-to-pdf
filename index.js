@@ -16,7 +16,7 @@ module.exports = {
         const pages = await Page.find();
         return [
           {
-            name: "page", 
+            name: "page",
             label: "Page",
             type: "String",
             attributes: { options: pages.map((p) => p.name) },
@@ -43,7 +43,7 @@ module.exports = {
             .map((s) => s.trim())
             .filter((s) => s)
         );
-        const refUrl = new URL(referrer || "")
+        const refUrl = new URL(referrer || "");
 
         for (const [name, value] of refUrl.searchParams) {
           if (xfer_vars.has(name)) qstate[name] = value;
@@ -58,41 +58,42 @@ module.exports = {
           const executablePath = fs.existsSync("/usr/bin/chromium-browser")
             ? "/usr/bin/chromium-browser"
             : undefined;
-          
+
           let options = { format: "A4", executablePath };
-          return await renderPdfToStream(html, req, thePage, options)
+          return await renderPdfToStream(html, req, thePage, options);
         }
       },
     },
   },
 };
 
-const renderPdfToStream = async (html, req, thePage, options)=>{
+const renderPdfToStream = async (html, req, thePage, options) => {
   const pdfBuffer = await generatePdf({ content: html }, options);
-  
-  return { download: {
-    blob: pdfBuffer.toString('base64'),
-    //filename: thePage.name+".pdf",
-    mimetype: "application/pdf"
-  }};
-}
-const renderPdfToFile=async (html, req, thePage, options)=>{
-  options.path = File.get_new_path()
+
+  return {
+    download: {
+      blob: pdfBuffer.toString("base64"),
+      //filename: thePage.name+".pdf",
+      mimetype: "application/pdf",
+    },
+  };
+};
+const renderPdfToFile = async (html, req, thePage, options) => {
+  options.path = File.get_new_path();
   await generatePdf({ content: html }, options);
-  const stats = fs.statSync(path)
+  const stats = fs.statSync(path);
   const file = await File.create({
     location: path,
     uploaded_at: new Date(),
-    filename: thePage.name+".pdf",
+    filename: thePage.name + ".pdf",
     user_id: (req.user || {}).id,
-    size_kb:  Math.round(stats.size/1024),
+    size_kb: Math.round(stats.size / 1024),
     mime_super: "application",
     mime_sub: "pdf",
-    min_role_read: thePage.min_role
-
-  })
+    min_role_read: thePage.min_role,
+  });
   return { goto: `/files/serve/${file.id}`, target: "_blank" };
-}
+};
 const renderPage = async (contents, page, baseUrl, req) => {
   const state = getState();
   const layout = state.getLayout(req.user);
@@ -114,7 +115,7 @@ const renderPage = async (contents, page, baseUrl, req) => {
     });
   const role = (req.user || {}).role_id || 10;
 
-  const htmlOut= layout.wrap({
+  const htmlOut = layout.wrap({
     title: page.title,
     brand: {},
     menu: [],
