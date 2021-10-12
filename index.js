@@ -66,9 +66,10 @@ module.exports = {
           if (xfer_vars.has(name)) qstate[name] = value;
         }
         const thePage = await Page.findOne({ name: page });
+        const base = referrer ? refUrl.origin : getState().getConfig("base_url","/")
         if (thePage) {
           const contents = await thePage.run(qstate, { res: {}, req });
-          const html = await renderPage(contents, thePage, refUrl.origin, req);
+          const html = await renderPage(contents, thePage, base, req);
           //console.log(refUrl);
           //console.log(html);
 
