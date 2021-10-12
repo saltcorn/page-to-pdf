@@ -66,7 +66,9 @@ module.exports = {
           if (xfer_vars.has(name)) qstate[name] = value;
         }
         const thePage = await Page.findOne({ name: page });
-        const base = referrer ? refUrl.origin : getState().getConfig("base_url","/")
+        const base = referrer
+          ? refUrl.origin
+          : getState().getConfig("base_url", "/");
         if (thePage) {
           const contents = await thePage.run(qstate, { res: {}, req });
           const html = await renderPage(contents, thePage, base, req);
@@ -75,6 +77,8 @@ module.exports = {
 
           const executablePath = fs.existsSync("/usr/bin/chromium-browser")
             ? "/usr/bin/chromium-browser"
+            : fs.existsSync("/usr/bin/chromium")
+            ? "/usr/bin/chromium"
             : undefined;
 
           let options = {
