@@ -79,7 +79,7 @@ module.exports = {
           let options = {
             format: format || "A4",
             landscape,
-            margins: {
+            margin: {
               top: "2cm",
               bottom: "2cm",
               left: "2cm",
