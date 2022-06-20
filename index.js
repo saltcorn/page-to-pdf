@@ -115,9 +115,9 @@ const renderPdfToStream = async (html, req, thePage, options) => {
 const renderPdfToFile = async (html, req, thePage, options) => {
   options.path = File.get_new_path();
   await generatePdf({ content: html }, options);
-  const stats = fs.statSync(path);
+  const stats = fs.statSync(options.path);
   const file = await File.create({
-    location: path,
+    location: options.path,
     uploaded_at: new Date(),
     filename: thePage.name + ".pdf",
     user_id: (req.user || {}).id,
