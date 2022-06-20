@@ -60,10 +60,13 @@ module.exports = {
             .map((s) => s.trim())
             .filter((s) => s)
         );
-        const refUrl = new URL(referrer || "");
 
-        for (const [name, value] of refUrl.searchParams) {
-          if (xfer_vars.has(name)) qstate[name] = value;
+        if (referrer) {
+          const refUrl = new URL(referrer || "");
+
+          for (const [name, value] of refUrl.searchParams) {
+            if (xfer_vars.has(name)) qstate[name] = value;
+          }
         }
         const thePage = await Page.findOne({ name: page });
         const base = referrer
