@@ -60,18 +60,17 @@ module.exports = {
             .map((s) => s.trim())
             .filter((s) => s)
         );
-
+        let base;
         if (referrer) {
           const refUrl = new URL(referrer || "");
 
           for (const [name, value] of refUrl.searchParams) {
             if (xfer_vars.has(name)) qstate[name] = value;
           }
-        }
+          base = refUrl.origin;
+        } else base = getState().getConfig("base_url", "/");
         const thePage = await Page.findOne({ name: page });
-        const base = referrer
-          ? refUrl.origin
-          : getState().getConfig("base_url", "/");
+
         if (thePage) {
           const contents = await thePage.run(qstate, { res: {}, req });
           const html = await renderPage(contents, thePage, base, req);
