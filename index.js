@@ -132,9 +132,15 @@ const renderPage = async (contents, page, baseUrl, req) => {
   const state = getState();
   const layout = state.getLayout(req.user);
   const version_tag = db.connectObj.version_tag;
-
+  let state_headers = [];
+  if (Array.isArray(state.headers)) {
+    state_headers = state.headers;
+  } else
+    for (const hs of Object.values(state.headers)) {
+      state_headers.push(...hs);
+    }
   const headers = [
-    ...state.headers,
+    ...state_headers,
     {
       headerTag: `<script>var _sc_globalCsrf = "${req.csrfToken()}"; var _sc_version_tag = "${version_tag}";</script>`,
     },
