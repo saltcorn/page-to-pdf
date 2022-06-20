@@ -97,6 +97,8 @@ module.exports = {
           if (to_file)
             return await renderPdfToFile(html, req, thePage, options);
           else return await renderPdfToStream(html, req, thePage, options);
+        } else {
+          return { error: `Page not found: ${page}` };
         }
       },
     },
