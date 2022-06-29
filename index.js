@@ -39,6 +39,14 @@ module.exports = {
             type: "Bool",
           },
           {
+            name: "scale",
+            label: "Scale",
+            type: "Float",
+            sublabel: "0.1-2",
+            default: 1.0,
+            attributes: { min: 0.1, max: 2, decimal_places: 1 },
+          },
+          {
             name: "format",
             label: "Format",
             type: "String",
@@ -51,7 +59,7 @@ module.exports = {
         row,
         referrer,
         req,
-        configuration: { page, statevars, to_file, landscape, format },
+        configuration: { page, statevars, to_file, landscape, format, scale },
       }) => {
         const qstate = {};
         const xfer_vars = new Set(
@@ -86,6 +94,7 @@ module.exports = {
           let options = {
             format: format || "A4",
             landscape,
+            scale: scale || 1.0,
             margin: {
               top: "2cm",
               bottom: "2cm",
