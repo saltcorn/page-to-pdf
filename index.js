@@ -94,7 +94,7 @@ module.exports = {
           let options = {
             format: format || "A4",
             landscape,
-            scale: scale || 1.0,
+            scale: +(scale || 1.0),
             margin: {
               top: "2cm",
               bottom: "2cm",
