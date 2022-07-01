@@ -53,13 +53,52 @@ module.exports = {
             required: true,
             attributes: { options: ["A4", "Letter", "Legal"] },
           },
+          {
+            name: "marginLeft",
+            label: "Left margin (cm)",
+            type: "Float",
+            default: 2.0,
+            attributes: { min: 0.0, decimal_places: 1 },
+          },
+          {
+            name: "marginRight",
+            label: "Right margin (cm)",
+            type: "Float",
+            default: 2.0,
+            attributes: { min: 0.0, decimal_places: 1 },
+          },
+          {
+            name: "marginTop",
+            label: "Top margin (cm)",
+            type: "Float",
+            default: 2.0,
+            attributes: { min: 0.0, decimal_places: 1 },
+          },
+          {
+            name: "marginBottom",
+            label: "Bottom margin (cm)",
+            type: "Float",
+            default: 2.0,
+            attributes: { min: 0.0, decimal_places: 1 },
+          },
         ];
       },
       run: async ({
         row,
         referrer,
         req,
-        configuration: { page, statevars, to_file, landscape, format, scale },
+        configuration: {
+          page,
+          statevars,
+          to_file,
+          landscape,
+          format,
+          scale,
+          marginLeft,
+          marginRight,
+          marginTop,
+          marginBottom,
+        },
       }) => {
         const qstate = {};
         const xfer_vars = new Set(
@@ -78,7 +117,8 @@ module.exports = {
           base = refUrl.origin;
         } else base = getState().getConfig("base_url", "/");
         const thePage = await Page.findOne({ name: page });
-
+        const toMargin = (x) =>
+          typeof x === "undefined" || x === null ? "2cm" : `${x}cm`;
         if (thePage) {
           const contents = await thePage.run(qstate, { res: {}, req });
           const html = await renderPage(contents, thePage, base, req);
@@ -96,10 +136,10 @@ module.exports = {
             landscape,
             scale: +(scale || 1.0),
             margin: {
-              top: "2cm",
-              bottom: "2cm",
-              left: "2cm",
-              right: "2cm",
+              top: toMargin(marginTop),
+              bottom: toMargin(marginBottom),
+              left: toMargin(marginLeft),
+              right: toMargin(marginRight),
             },
             executablePath,
           };
