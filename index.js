@@ -108,6 +108,7 @@ module.exports = {
             .filter((s) => s)
         );
         let base;
+
         if (referrer) {
           const refUrl = new URL(referrer || "");
 
@@ -116,6 +117,13 @@ module.exports = {
           }
           base = refUrl.origin;
         } else base = getState().getConfig("base_url", "/");
+        if (row) {
+          xfer_vars.forEach((k) => {
+            if (typeof row[k] !== undefined) {
+              qstate[k] = row[k];
+            }
+          });
+        }
         const thePage = await Page.findOne({ name: page });
         const toMargin = (x) =>
           typeof x === "undefined" || x === null ? "2cm" : `${x}cm`;
@@ -123,7 +131,7 @@ module.exports = {
           const contents = await thePage.run(qstate, { res: {}, req });
           const html = await renderPage(contents, thePage, base, req);
           //console.log(refUrl);
-          //console.log(html);
+          console.log(html);
 
           const executablePath = fs.existsSync("/usr/bin/chromium-browser")
             ? "/usr/bin/chromium-browser"
@@ -133,7 +141,7 @@ module.exports = {
 
           let options = {
             format: format || "A4",
-            landscape,
+            landscape: !!landscape,
             scale: +(scale || 1.0),
             margin: {
               top: toMargin(marginTop),
