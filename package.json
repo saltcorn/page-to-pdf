@@ -1,6 +1,6 @@
 {
   "name": "@saltcorn/page-to-pdf",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "Generate PDF from page",
   "main": "index.js",
   "dependencies": {
