@@ -1,12 +1,12 @@
 {
   "name": "@saltcorn/page-to-pdf",
-  "version": "0.1.8",
+  "version": "0.2.0",
   "description": "Generate PDF from page",
   "main": "index.js",
   "dependencies": {
     "@saltcorn/markup": "^0.5.6",
     "@saltcorn/data": "^0.5.6",
-    "@saltcorn/html-pdf-node": "^1.0.8-beta.0"
+    "@saltcorn/html-pdf-node": "^1.0.8-beta.3"
   },
   "author": "Tom Nielsen",
   "license": "MIT",

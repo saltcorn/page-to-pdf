@@ -7,6 +7,7 @@ const db = require("@saltcorn/data/db");
 const { URL } = require("url");
 const { generatePdf } = require("@saltcorn/html-pdf-node");
 const fs = require("fs");
+const path = require("path");
 
 module.exports = {
   sc_plugin_api_version: 1,
@@ -129,9 +130,11 @@ module.exports = {
           typeof x === "undefined" || x === null ? "2cm" : `${x}cm`;
         if (thePage) {
           const contents = await thePage.run(qstate, { res: {}, req });
+          const domain = base.split("//")[1];
           const html = await renderPage(contents, thePage, base, req);
           //console.log(refUrl);
-          console.log(html);
+          //console.log(html);
+          //fs.writeFileSync("pdfhtml.html", html);
 
           const executablePath = fs.existsSync("/usr/bin/chromium-browser")
             ? "/usr/bin/chromium-browser"
@@ -151,9 +154,16 @@ module.exports = {
             },
             executablePath,
           };
+          if (req.cookies["connect.sid"])
+            options.cookie = {
+              name: "connect.sid",
+              value: req.cookies["connect.sid"],
+              domain,
+            };
           if (to_file)
-            return await renderPdfToFile(html, req, thePage, options);
-          else return await renderPdfToStream(html, req, thePage, options);
+            return await renderPdfToFile(html, req, thePage, options, base);
+          else
+            return await renderPdfToStream(html, req, thePage, options, base);
         } else {
           return { error: `Page not found: ${page}` };
         }
@@ -162,9 +172,14 @@ module.exports = {
   },
 };
 
-const renderPdfToStream = async (html, req, thePage, options) => {
-  const pdfBuffer = await generatePdf({ content: html }, options);
-
+const renderPdfToStream = async (html, req, thePage, options, base) => {
+  let tmpFile = File.get_new_path() + ".html";
+  fs.writeFileSync(tmpFile, html);
+  const pdfBuffer = await generatePdf(
+    { url: `${base}/files/serve/${path.basename(tmpFile)}` },
+    options
+  );
+  fs.unlinkSync(tmpFile);
   return {
     download: {
       blob: pdfBuffer.toString("base64"),
@@ -173,9 +188,15 @@ const renderPdfToStream = async (html, req, thePage, options) => {
     },
   };
 };
-const renderPdfToFile = async (html, req, thePage, options) => {
+const renderPdfToFile = async (html, req, thePage, options, base) => {
   options.path = File.get_new_path();
-  await generatePdf({ content: html }, options);
+  let tmpFile = File.get_new_path() + ".html";
+  fs.writeFileSync(tmpFile, html);
+  await generatePdf(
+    { url: `${base}/files/serve/${path.basename(tmpFile)}` },
+    options
+  );
+  fs.unlinkSync(tmpFile);
   const stats = fs.statSync(options.path);
   const file = await File.create({
     location: options.path,
@@ -203,7 +224,9 @@ const renderPage = async (contents, page, baseUrl, req) => {
   const headers = [
     ...state_headers,
     {
-      headerTag: `<script>var _sc_globalCsrf = "${req.csrfToken()}"; var _sc_version_tag = "${version_tag}";</script>`,
+      headerTag: `<script>var _sc_globalCsrf = "${req.csrfToken()}"; 
+      var _sc_version_tag = "${version_tag}";      
+      </script>`,
     },
     { css: `/static_assets/${version_tag}/saltcorn.css` },
     { script: `/static_assets/${version_tag}/saltcorn.js` },
@@ -227,5 +250,5 @@ const renderPage = async (contents, page, baseUrl, req) => {
     role,
     req,
   });
-  return htmlOut.replace("<head>", `<head><base href="${baseUrl}">`);
+  return htmlOut; // .replace("<head>", `<head><base href="${baseUrl}">`);
 };
