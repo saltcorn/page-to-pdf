@@ -174,11 +174,15 @@ module.exports = {
 
 const renderPdfToStream = async (html, req, thePage, options, base) => {
   let tmpFile = File.get_new_path() + ".html";
-  fs.writeFileSync(tmpFile, html);
-  const pdfBuffer = await generatePdf(
-    { url: `${base}/files/serve/${path.basename(tmpFile)}` },
-    options
+  const url = `${base}/files/serve/${path.basename(tmpFile)}`;
+  getState().log(
+    5,
+    `pade-to-pdf to stream file=${tmpFile} url=${url} contents=${
+      html?.substring ? html.substring(0, 20) : html
+    }`
   );
+  fs.writeFileSync(tmpFile, html);
+  const pdfBuffer = await generatePdf({ url }, options);
   fs.unlinkSync(tmpFile);
   return {
     download: {
