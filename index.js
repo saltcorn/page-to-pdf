@@ -5,7 +5,7 @@ const { getState } = require("@saltcorn/data/db/state");
 const db = require("@saltcorn/data/db");
 
 const { URL } = require("url");
-const { generatePdf } = require("@saltcorn/html-pdf-node");
+const { generatePdf } = require("./html-pdf-node");
 const fs = require("fs");
 const path = require("path");
 
@@ -184,6 +184,7 @@ const renderPdfToStream = async (html, req, thePage, options, base) => {
   fs.writeFileSync(tmpFile, html);
   const pdfBuffer = await generatePdf({ url }, options);
   fs.unlinkSync(tmpFile);
+
   return {
     download: {
       blob: pdfBuffer.toString("base64"),
