@@ -8,7 +8,7 @@
     "@saltcorn/data": "^0.5.6",
     "bluebird": "^3.7.2",
     "handlebars": "^4.7.6",
-    "puppeteer": "^17.1.3"
+    "@saltcorn/puppeteer-v17": "^17.1.4-beta.0"
   },
   "author": "Tom Nielsen",
   "license": "MIT",

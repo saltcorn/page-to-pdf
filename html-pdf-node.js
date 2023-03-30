@@ -4,7 +4,7 @@ https://github.com/mrafiqk/html-pdf-node/
 
 */
 
-const puppeteer = require("puppeteer");
+const puppeteer = require("@saltcorn/puppeteer-v17");
 var Promise = require("bluebird");
 const hb = require("handlebars");
 
