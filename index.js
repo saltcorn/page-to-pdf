@@ -3,6 +3,7 @@ const File = require("@saltcorn/data/models/file");
 const Page = require("@saltcorn/data/models/page");
 const { getState } = require("@saltcorn/data/db/state");
 const db = require("@saltcorn/data/db");
+const { domReady } = require("@saltcorn/markup/tags");
 
 const { URL } = require("url");
 const { generatePdf } = require("./html-pdf-node");
@@ -235,6 +236,7 @@ const renderPage = async (contents, page, baseUrl, req) => {
     },
     { css: `/static_assets/${version_tag}/saltcorn.css` },
     { script: `/static_assets/${version_tag}/saltcorn.js` },
+    { scriptBody: domReady(`$('.accordion-collapse').addClass("show")`) },
   ];
   if (state.getConfig("page_custom_css", ""))
     headers.push({ style: state.getConfig("page_custom_css", "") });
