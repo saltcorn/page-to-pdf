@@ -121,7 +121,7 @@ module.exports = {
         } else base = getState().getConfig("base_url", "/");
         if (row) {
           xfer_vars.forEach((k) => {
-            if (typeof row[k] !== undefined) {
+            if (typeof row[k] !== "undefined") {
               qstate[k] = row[k];
             }
           });
