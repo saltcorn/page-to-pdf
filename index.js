@@ -96,6 +96,7 @@ module.exports = {
       run: async ({
         row,
         referrer,
+        user,
         req,
         configuration: {
           page,
@@ -111,6 +112,16 @@ module.exports = {
           marginBottom,
         },
       }) => {
+        if (!req)
+          req = {
+            user,
+            getLocale() {
+              return user.language;
+            },
+            csrfToken() {
+              return "";
+            },
+          };
         const qstate = {};
         const xfer_vars = new Set(
           (statevars || "")
@@ -164,7 +175,7 @@ module.exports = {
             },
             executablePath,
           };
-          if (req.cookies["connect.sid"])
+          if (req.cookies?.["connect.sid"])
             options.cookie = {
               name: "connect.sid",
               value: req.cookies["connect.sid"],
