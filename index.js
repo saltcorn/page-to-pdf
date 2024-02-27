@@ -3,6 +3,7 @@ const File = require("@saltcorn/data/models/file");
 const Page = require("@saltcorn/data/models/page");
 const { getState } = require("@saltcorn/data/db/state");
 const db = require("@saltcorn/data/db");
+const { interpolate } = require("@saltcorn/data/utils");
 const { domReady } = require("@saltcorn/markup/tags");
 
 const { URL } = require("url");
@@ -34,6 +35,13 @@ module.exports = {
             name: "to_file",
             label: "Save to file",
             type: "Bool",
+          },
+          {
+            name: "filename",
+            label: "File name",
+            type: "String",
+            sublabel: "Default to page name + '.pdf' if left blank",
+            showIf: { to_file: true },
           },
           {
             name: "landscape",
@@ -93,6 +101,7 @@ module.exports = {
           page,
           statevars,
           to_file,
+          filename,
           landscape,
           format,
           scale,
@@ -162,7 +171,15 @@ module.exports = {
               domain,
             };
           if (to_file)
-            return await renderPdfToFile(html, req, thePage, options, base);
+            return await renderPdfToFile(
+              html,
+              req,
+              thePage,
+              options,
+              base,
+              row,
+              filename
+            );
           else
             return await renderPdfToStream(html, req, thePage, options, base);
         } else {
@@ -194,7 +211,15 @@ const renderPdfToStream = async (html, req, thePage, options, base) => {
     },
   };
 };
-const renderPdfToFile = async (html, req, thePage, options, base) => {
+const renderPdfToFile = async (
+  html,
+  req,
+  thePage,
+  options,
+  base,
+  row,
+  filename
+) => {
   options.path = File.get_new_path();
   let tmpFile = File.get_new_path() + ".html";
   fs.writeFileSync(tmpFile, html);
@@ -207,7 +232,10 @@ const renderPdfToFile = async (html, req, thePage, options, base) => {
   const file = await File.create({
     location: options.path,
     uploaded_at: new Date(),
-    filename: thePage.name + ".pdf",
+    filename:
+      filename && interpolate && row
+        ? interpolate(filename, row, req?.user)
+        : filename || thePage.name + ".pdf",
     user_id: (req.user || {}).id,
     size_kb: Math.round(stats.size / 1024),
     mime_super: "application",
