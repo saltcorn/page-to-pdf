@@ -259,7 +259,7 @@ const renderPdfToFile = async (
     mime_sub: "pdf",
     min_role_read: thePage.min_role,
   });
-  return { goto: `/files/serve/${file.id}`, target: "_blank" };
+  return { goto: `/files/serve/${file.path_to_serve}`, target: "_blank" };
 };
 const renderPage = async (contents, page, baseUrl, req) => {
   const state = getState();
