@@ -222,6 +222,9 @@ const renderPdfToStream = async (html, req, thePage, options, base) => {
     },
   };
 };
+
+const ensure_final_slash = (s) => (s.endsWith("/") ? s : s + "/");
+
 const renderPdfToFile = async (
   html,
   req,
@@ -239,7 +242,7 @@ const renderPdfToFile = async (
   options.path = File.get_new_path(the_filename);
   fs.writeFileSync(tmpFile, html);
   await generatePdf(
-    { url: `${base}/files/serve/${path.basename(tmpFile)}` },
+    { url: `${ensure_final_slash(base)}files/serve/${path.basename(tmpFile)}` },
     options
   );
   fs.unlinkSync(tmpFile);
