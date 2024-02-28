@@ -116,7 +116,7 @@ module.exports = {
           req = {
             user,
             getLocale() {
-              return user.language;
+              return user?.language;
             },
             csrfToken() {
               return "";
@@ -231,8 +231,12 @@ const renderPdfToFile = async (
   row,
   filename
 ) => {
-  options.path = File.get_new_path();
+  const the_filename =
+    filename && interpolate && row
+      ? interpolate(filename, row, req?.user)
+      : filename || thePage.name + ".pdf";
   let tmpFile = File.get_new_path() + ".html";
+  options.path = File.get_new_path(the_filename);
   fs.writeFileSync(tmpFile, html);
   await generatePdf(
     { url: `${base}/files/serve/${path.basename(tmpFile)}` },
@@ -240,13 +244,12 @@ const renderPdfToFile = async (
   );
   fs.unlinkSync(tmpFile);
   const stats = fs.statSync(options.path);
+
   const file = await File.create({
     location: options.path,
     uploaded_at: new Date(),
-    filename:
-      filename && interpolate && row
-        ? interpolate(filename, row, req?.user)
-        : filename || thePage.name + ".pdf",
+    filename: the_filename,
+
     user_id: (req.user || {}).id,
     size_kb: Math.round(stats.size / 1024),
     mime_super: "application",
