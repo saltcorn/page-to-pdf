@@ -161,6 +161,10 @@ module.exports = {
             ? "/usr/bin/chromium-browser"
             : fs.existsSync("/usr/bin/chromium")
             ? "/usr/bin/chromium"
+            : fs.existsSync(
+                "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+              )
+            ? "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
             : undefined;
 
           let options = {
