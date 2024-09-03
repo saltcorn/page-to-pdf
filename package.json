@@ -6,7 +6,6 @@
   "dependencies": {
     "@saltcorn/markup": "^0.5.6",
     "@saltcorn/data": "^0.5.6",
-    "bluebird": "^3.7.2",
     "handlebars": "^4.7.6",
     "@saltcorn/puppeteer-v17": "^17.1.4-beta.0"
   },
