@@ -152,7 +152,11 @@ module.exports = {
         if (thePage) {
           const contents = await thePage.run(qstate, { res: {}, req });
           const domain = base.split("//")[1];
-          const html = await renderPage(contents, thePage, base, req);
+          const html0 = await renderPage(contents, thePage, base, req);
+          const html = html0.replaceAll(
+            `<img src="../files/serve`,
+            `<img src="/files/serve`
+          );
           //console.log(refUrl);
           //console.log(html);
           //fs.writeFileSync("pdfhtml.html", html);
