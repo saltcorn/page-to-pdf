@@ -15,14 +15,26 @@ module.exports = {
   sc_plugin_api_version: 1,
   actions: {
     page_to_pdf: {
-      configFields: async () => {
+      configFields: async ({ table, mode }) => {
+        const entity_type_options = ["Page"];
+        if (mode !== "trigger") entity_type_options.push("Current URL");
+        if (table) entity_type_options.push("View");
+        entity_type_options.push("URL");
         const pages = await Page.find();
+        let view_options = []
         return [
+          {
+            name: "entity_type",
+            label: "Print what",
+            type: "String",
+            attributes: { options: entity_type_options },
+          },
           {
             name: "page",
             label: "Page",
             type: "String",
             attributes: { options: pages.map((p) => p.name) },
+            showIf: { entity_type: "Page" },
           },
           {
             name: "statevars",
@@ -30,6 +42,20 @@ module.exports = {
             type: "String",
             sublabel:
               "Which state variable to capture in printed page. Separate by comma.",
+            showIf: { entity_type: "Page" },
+          },
+          {
+            name: "view",
+            label: "View",
+            type: "String",
+            attributes: { options: view_options},
+            showIf: { entity_type: "View" },
+          },
+          {
+            name: "url",
+            label: "URL",
+            type: "String",
+            showIf: { entity_type: "URL" },
           },
           {
             name: "to_file",
