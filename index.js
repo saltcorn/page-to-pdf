@@ -17,14 +17,17 @@ module.exports = {
   actions: {
     page_to_pdf: {
       configFields: async ({ table, mode }) => {
+        let view_options = [];
         const entity_type_options = ["Page"];
         //if (mode !== "trigger") entity_type_options.push("Current URL");
-        if (table) entity_type_options.push("View");
+        if (table) {
+          entity_type_options.push("View");
+          view_options = (await View.find({ table_id: table.id })).map(
+            (v) => v.name
+          );
+        }
         //entity_type_options.push("URL");
         const pages = await Page.find();
-        let view_options = (await View.find({ table_id: table.id })).map(
-          (v) => v.name
-        );
 
         return [
           {
