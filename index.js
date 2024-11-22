@@ -1,6 +1,7 @@
 const Workflow = require("@saltcorn/data/models/workflow");
 const File = require("@saltcorn/data/models/file");
 const Page = require("@saltcorn/data/models/page");
+const View = require("@saltcorn/data/models/view");
 const { getState } = require("@saltcorn/data/db/state");
 const db = require("@saltcorn/data/db");
 const { interpolate } = require("@saltcorn/data/utils");
@@ -17,16 +18,20 @@ module.exports = {
     page_to_pdf: {
       configFields: async ({ table, mode }) => {
         const entity_type_options = ["Page"];
-        if (mode !== "trigger") entity_type_options.push("Current URL");
+        //if (mode !== "trigger") entity_type_options.push("Current URL");
         if (table) entity_type_options.push("View");
-        entity_type_options.push("URL");
+        //entity_type_options.push("URL");
         const pages = await Page.find();
-        let view_options = []
+        let view_options = (await View.find({ table_id: table.id })).map(
+          (v) => v.name
+        );
+
         return [
           {
             name: "entity_type",
             label: "Print what",
             type: "String",
+            required: true,
             attributes: { options: entity_type_options },
           },
           {
@@ -48,7 +53,8 @@ module.exports = {
             name: "view",
             label: "View",
             type: "String",
-            attributes: { options: view_options},
+            required: true,
+            attributes: { options: view_options },
             showIf: { entity_type: "View" },
           },
           {
@@ -124,8 +130,12 @@ module.exports = {
         referrer,
         user,
         req,
+        table,
         configuration: {
           page,
+          entity_type,
+          url,
+          view,
           statevars,
           to_file,
           filename,
@@ -172,70 +182,135 @@ module.exports = {
             }
           });
         }
-        const thePage = await Page.findOne({ name: page });
         const toMargin = (x) =>
           typeof x === "undefined" || x === null ? "2cm" : `${x}cm`;
-        if (thePage) {
-          const contents = await thePage.run(qstate, { res: {}, req });
-          const domain = base.split("//")[1];
-          const html0 = await renderPage(contents, thePage, base, req);
-          const html = html0.replaceAll(
-            `<img src="../files/serve`,
-            `<img src="/files/serve`
-          );
-          //console.log(refUrl);
-          //console.log(html);
-          //fs.writeFileSync("pdfhtml.html", html);
+        const { html, default_name, min_role, domain } = await get_contents({
+          page,
+          entity_type,
+          url,
+          view,
+          statevars,
+          req,
+          referrer,
+          row,
+          table,
+        });
 
-          const executablePath = fs.existsSync("/usr/bin/chromium-browser")
-            ? "/usr/bin/chromium-browser"
-            : fs.existsSync("/usr/bin/chromium")
-            ? "/usr/bin/chromium"
-            : fs.existsSync(
-                "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
-              )
-            ? "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
-            : undefined;
+        const html1 = html.replaceAll(
+          `<img src="../files/serve`,
+          `<img src="/files/serve`
+        );
+        //console.log(refUrl);
+        //console.log(html);
+        //fs.writeFileSync("pdfhtml.html", html);
 
-          let options = {
-            format: format || "A4",
-            landscape: !!landscape,
-            scale: +(scale || 1.0),
-            margin: {
-              top: toMargin(marginTop),
-              bottom: toMargin(marginBottom),
-              left: toMargin(marginLeft),
-              right: toMargin(marginRight),
-            },
-            executablePath,
+        const executablePath = fs.existsSync("/usr/bin/chromium-browser")
+          ? "/usr/bin/chromium-browser"
+          : fs.existsSync("/usr/bin/chromium")
+          ? "/usr/bin/chromium"
+          : fs.existsSync(
+              "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+            )
+          ? "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+          : undefined;
+
+        let options = {
+          format: format || "A4",
+          landscape: !!landscape,
+          scale: +(scale || 1.0),
+          margin: {
+            top: toMargin(marginTop),
+            bottom: toMargin(marginBottom),
+            left: toMargin(marginLeft),
+            right: toMargin(marginRight),
+          },
+          executablePath,
+        };
+        if (req.cookies?.["connect.sid"])
+          options.cookie = {
+            name: "connect.sid",
+            value: req.cookies["connect.sid"],
+            domain,
           };
-          if (req.cookies?.["connect.sid"])
-            options.cookie = {
-              name: "connect.sid",
-              value: req.cookies["connect.sid"],
-              domain,
-            };
-          if (to_file)
-            return await renderPdfToFile(
-              html,
-              req,
-              thePage,
-              options,
-              base,
-              row,
-              filename
-            );
-          else
-            return await renderPdfToStream(html, req, thePage, options, base);
-        } else {
-          return { error: `Page not found: ${page}` };
-        }
+        if (to_file)
+          return await renderPdfToFile(
+            html1,
+            req,
+            default_name,
+            options,
+            base,
+            row,
+            filename,
+            min_role
+          );
+        else return await renderPdfToStream(html1, req, options, base);
       },
     },
   },
 };
 
-const renderPdfToStream = async (html, req, thePage, options, base) => {
+const get_contents = async ({
+  page,
+  entity_type,
+  url,
+  view,
+  statevars,
+  req,
+  referrer,
+  row,
+  table,
+}) => {
+  let base, refUrl;
+  if (referrer) {
+    refUrl = new URL(referrer || "");
+    base = refUrl.origin;
+  } else base = getState().getConfig("base_url", "/");
+  const domain = base.split("//")[1];
+
+  let qstate = {};
+
+  if (!entity_type || entity_type === "Page") {
+    const xfer_vars = new Set(
+      (statevars || "")
+        .split(",")
+        .map((s) => s.trim())
+        .filter((s) => s)
+    );
+
+    if (referrer) {
+      for (const [name, value] of refUrl.searchParams) {
+        if (xfer_vars.has(name)) qstate[name] = value;
+      }
+    }
+    if (row) {
+      xfer_vars.forEach((k) => {
+        if (typeof row[k] !== "undefined") {
+          qstate[k] = row[k];
+        }
+      });
+    }
+    const thePage = await Page.findOne({ name: page });
+    const contents = await thePage.run(qstate, { res: {}, req });
+    return {
+      html: await renderPage(contents, thePage.title, base, req),
+      default_name: thePage.name,
+      min_role: thePage.min_role,
+      domain,
+    };
+  } else if (entity_type === "View") {
+    const theView = await View.findOne({ name: view });
+    if (row && table) qstate[table.pk_name] = row[table.pk_name];
+    const contents = await theView.run(qstate, { res: {}, req });
+    return {
+      html: await renderPage(contents, theView.name, base, req),
+      default_name: theView.name,
+      min_role: theView.min_role,
+      domain,
+    };
+  }
+};
+
+const renderPdfToStream = async (html, req, options, base) => {
   let tmpFile = File.get_new_path() + ".html";
   const url = `${base}/files/serve/${path.basename(tmpFile)}`;
   getState().log(
@@ -262,16 +337,17 @@ const ensure_final_slash = (s) => (s.endsWith("/") ? s : s + "/");
 const renderPdfToFile = async (
   html,
   req,
-  thePage,
+  default_name,
   options,
   base,
   row,
-  filename
+  filename,
+  min_role
 ) => {
   const the_filename =
     filename && interpolate && row
       ? interpolate(filename, row, req?.user)
-      : filename || thePage.name + ".pdf";
+      : filename || default_name + ".pdf";
   let tmpFile = File.get_new_path() + ".html";
   options.path = File.get_new_path(the_filename);
   fs.writeFileSync(tmpFile, html);
@@ -291,11 +367,11 @@ const renderPdfToFile = async (
     size_kb: Math.round(stats.size / 1024),
     mime_super: "application",
     mime_sub: "pdf",
-    min_role_read: thePage.min_role,
+    min_role_read: min_role,
   });
   return { goto: `/files/serve/${file.path_to_serve}`, target: "_blank" };
 };
-const renderPage = async (contents, page, baseUrl, req) => {
+const renderPage = async (contents, pageTitle, baseUrl, req) => {
   const state = getState();
   const layout = state.getLayout(req.user);
   const version_tag = db.connectObj.version_tag;
@@ -326,7 +402,7 @@ const renderPage = async (contents, page, baseUrl, req) => {
   const role = (req.user || {}).role_id || 10;
 
   const htmlOut = layout.wrap({
-    title: page.title,
+    title: pageTitle,
     brand: {},
     menu: [],
     currentUrl: "",
