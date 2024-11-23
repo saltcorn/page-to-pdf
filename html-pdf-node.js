@@ -35,10 +35,15 @@ async function generatePdf(file, options) {
     });
     if (["PNG", "JPEG", "WebP"].includes(options.format)) {
       const content = await page.$(options.css_selector || "body");
-      const imageBuffer = await content.screenshot({ omitBackground: true });
+      const scopts = {
+        omitBackground: !!options.omitBackground,
+        type: options.format.toLowerCase(),
+      };
+      const imageBuffer = await content.screenshot(scopts);
       return imageBuffer;
     } else {
       delete options.css_selector;
+      delete options.omitBackground;
       const data = await page.pdf(options);
       return Buffer.from(Object.values(data));
     }

@@ -96,9 +96,16 @@ module.exports = {
             showIf: { format: ["PNG", "JPEG", "WebP"] },
           },
           {
+            name: "omit_bg",
+            label: "Omit background",
+            type: "Bool",
+            showIf: { format: ["PNG", "JPEG", "WebP"] },
+          },
+          {
             name: "landscape",
             label: "Landscape",
             type: "Bool",
+            showIf: { format: ["A4", "Letter", "Legal"] },
           },
           {
             name: "scale",
@@ -165,6 +172,7 @@ module.exports = {
           marginTop,
           marginBottom,
           css_selector,
+          omit_bg,
         },
       }) => {
         if (!req)
@@ -235,6 +243,7 @@ module.exports = {
 
         let options = {
           css_selector,
+          omitBackground: omit_bg,
           format: format || "A4",
           landscape: !!landscape,
           scale: +(scale || 1.0),
