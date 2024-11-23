@@ -6,6 +6,7 @@ https://github.com/mrafiqk/html-pdf-node/
 
 const puppeteer = require("@saltcorn/puppeteer-v17");
 const hb = require("handlebars");
+const fs = require("fs").promises
 
 module.exports;
 async function generatePdf(file, options) {
@@ -40,6 +41,9 @@ async function generatePdf(file, options) {
         type: options.format.toLowerCase(),
       };
       const imageBuffer = await content.screenshot(scopts);
+      if(options.path) {
+        await fs.writeFile(options.path, imageBuffer)
+      }
       return imageBuffer;
     } else {
       delete options.css_selector;
