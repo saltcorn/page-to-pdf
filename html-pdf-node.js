@@ -33,9 +33,15 @@ async function generatePdf(file, options) {
     await page.goto(file.url, {
       waitUntil: "networkidle0", // wait for page to load completely
     });
-    const data = await page.pdf(options);
-
-    return Buffer.from(Object.values(data));
+    if (["PNG", "JPEG", "WebP"].includes(options.format)) {
+      const content = await page.$(options.css_selector || "body");
+      const imageBuffer = await content.screenshot({ omitBackground: true });
+      return imageBuffer;
+    } else {
+      delete options.css_selector;
+      const data = await page.pdf(options);
+      return Buffer.from(Object.values(data));
+    }
   } finally {
     await browser.close();
   }

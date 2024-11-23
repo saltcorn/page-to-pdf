@@ -78,6 +78,23 @@ module.exports = {
             sublabel: "Default to page name + '.pdf' if left blank",
             showIf: { to_file: true },
           },
+
+          {
+            name: "format",
+            label: "Format",
+            type: "String",
+            required: true,
+            attributes: {
+              options: ["A4", "Letter", "Legal", "PNG", "JPEG", "WebP"],
+            },
+          },
+          {
+            name: "css_selector",
+            label: "CSS selector",
+            type: "String",
+            sublabel: "Optional. Element to print to image",
+            showIf: { format: ["PNG", "JPEG", "WebP"] },
+          },
           {
             name: "landscape",
             label: "Landscape",
@@ -90,13 +107,7 @@ module.exports = {
             sublabel: "0.1-2",
             default: 1.0,
             attributes: { min: 0.1, max: 2, decimal_places: 1 },
-          },
-          {
-            name: "format",
-            label: "Format",
-            type: "String",
-            required: true,
-            attributes: { options: ["A4", "Letter", "Legal"] },
+            showIf: { format: ["A4", "Letter", "Legal"] },
           },
           {
             name: "marginLeft",
@@ -104,6 +115,7 @@ module.exports = {
             type: "Float",
             default: 2.0,
             attributes: { min: 0.0, decimal_places: 1 },
+            showIf: { format: ["A4", "Letter", "Legal"] },
           },
           {
             name: "marginRight",
@@ -111,6 +123,7 @@ module.exports = {
             type: "Float",
             default: 2.0,
             attributes: { min: 0.0, decimal_places: 1 },
+            showIf: { format: ["A4", "Letter", "Legal"] },
           },
           {
             name: "marginTop",
@@ -118,6 +131,7 @@ module.exports = {
             type: "Float",
             default: 2.0,
             attributes: { min: 0.0, decimal_places: 1 },
+            showIf: { format: ["A4", "Letter", "Legal"] },
           },
           {
             name: "marginBottom",
@@ -125,6 +139,7 @@ module.exports = {
             type: "Float",
             default: 2.0,
             attributes: { min: 0.0, decimal_places: 1 },
+            showIf: { format: ["A4", "Letter", "Legal"] },
           },
         ];
       },
@@ -149,6 +164,7 @@ module.exports = {
           marginRight,
           marginTop,
           marginBottom,
+          css_selector,
         },
       }) => {
         if (!req)
@@ -218,6 +234,7 @@ module.exports = {
           : undefined;
 
         let options = {
+          css_selector,
           format: format || "A4",
           landscape: !!landscape,
           scale: +(scale || 1.0),
@@ -326,11 +343,15 @@ const renderPdfToStream = async (html, req, options, base) => {
   const pdfBuffer = await generatePdf({ url }, options);
   fs.unlinkSync(tmpFile);
 
+  const mimetype = ["PNG", "JPEG", "WebP"].includes(options.format)
+    ? `image/${options.format.toLowerCase()}`
+    : "application/pdf";
+
   return {
     download: {
       blob: pdfBuffer.toString("base64"),
       //filename: thePage.name+".pdf",
-      mimetype: "application/pdf",
+      mimetype,
     },
   };
 };
