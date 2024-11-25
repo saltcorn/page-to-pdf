@@ -41,6 +41,7 @@ module.exports = {
             name: "page",
             label: "Page",
             type: "String",
+            required: true,
             attributes: { options: pages.map((p) => p.name) },
             showIf: { entity_type: "Page" },
           },
