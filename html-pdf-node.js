@@ -31,6 +31,8 @@ async function generatePdf(file, options) {
   }
   delete options.footerHtml;
   delete options.headerHtml;
+  delete options.footerHeight;
+  delete options.headerHeight;
   try {
     await page.goto(file.url, {
       waitUntil: "networkidle0", // wait for page to load completely

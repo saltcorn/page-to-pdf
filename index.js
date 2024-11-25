@@ -181,6 +181,23 @@ module.exports = {
             type: "Bool",
             showIf: { format: ["A4", "Letter", "Legal"] },
           },
+          {
+            name: "header_height",
+            label: "Header height (cm)",
+            type: "Integer",
+            showIf: {
+              format: ["A4", "Letter", "Legal"],
+              
+            },
+          },
+          {
+            name: "footer_height",
+            label: "Footer height (cm)",
+            type: "Integer",
+            showIf: {
+              format: ["A4", "Letter", "Legal"],  
+            },
+          },
         ];
       },
       run: async ({ row, referrer, user, req, table, configuration }) => {
@@ -277,6 +294,9 @@ module.exports = {
                 only_content: true,
               });
               options[hdrfoot + "Html"] = html;
+              if (configuration[hdrfoot + "_height"])
+                options[hdrfoot + "Height"] =
+                  configuration[hdrfoot + "_height"];
             }
           }
         }
@@ -512,7 +532,46 @@ const renderPage = async (contents, pageTitle, req, only_content, options) => {
         req,
       });
       //https://medium.com/@Idan_Co/the-ultimate-print-html-template-with-header-footer-568f415f6d2a
-      useContents = `<table>
+      if (options.headerHeight || options.footerHeight)
+        useContents = `<table>
+      <thead>
+        <tr><td>
+          <div class="page2pdf-header-space">&nbsp;</div>
+        </td></tr>
+      </thead>
+      <tbody>
+        <tr><td>
+          <div>${bodyHtml}</div>
+        </td></tr>
+      </tbody>
+      <tfoot>
+        <tr><td>
+          <div class="page2pdf-footer-space">&nbsp;</div>
+        </td></tr>
+      </tfoot>
+    </table>
+    <div class="page2pdf-header">${options?.headerHtml || ""}</div>
+    <div class="page2pdf-footer">${options?.footerHtml || ""}</div>
+    <style>
+      .page2pdf-header, .page2pdf-header-space {
+        height: ${options.headerHeight||"3"}cm;
+      }
+      .page2pdf-footer, .page2pdf-footer-space {
+        height: ${options.footerHeight||"3"}cm;        
+      }
+      .page2pdf-header {
+        width: 100%;
+        position: fixed;
+        top: 0;
+      }
+      .page2pdf-footer {
+        width: 100%;
+        position: fixed;
+        bottom: 0;
+      }
+    </style>`;
+      else
+        useContents = `<table>
   <thead>
     <tr><td>
       <div class="header">${options?.headerHtml || ""}</div>
