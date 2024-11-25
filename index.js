@@ -175,6 +175,12 @@ module.exports = {
             attributes: { options: headerFooterOptions },
             showIf: { format: ["A4", "Letter", "Legal"] },
           },
+          {
+            name: "page_numbers",
+            label: "Page numbers",
+            type: "Bool",
+            showIf: { format: ["A4", "Letter", "Legal"] },
+          },
         ];
       },
       run: async ({ row, referrer, user, req, table, configuration }) => {
@@ -195,6 +201,7 @@ module.exports = {
           marginBottom,
           css_selector,
           omit_bg,
+          page_numbers,
         } = configuration;
         if (!req)
           req = {
@@ -246,7 +253,14 @@ module.exports = {
           },
           executablePath,
         };
-        if (!["PNG", "JPEG", "WebP"].includes(options.format))
+        if (!["PNG", "JPEG", "WebP"].includes(options.format)) {
+          if (page_numbers) {
+            options.displayHeaderFooter = true;
+            options.headerTemplate = " ";
+            options.footerTemplate = `<div class="text" style="margin-left: ${toMargin(
+              marginLeft
+            )}"><div class="pageNumber"></div></div>`;
+          }
           for (const hdrfoot of ["header", "footer"]) {
             if (configuration[hdrfoot]) {
               const [hdrEntType, vOrPname] = configuration[hdrfoot].split(":");
@@ -265,6 +279,7 @@ module.exports = {
               options[hdrfoot + "Html"] = html;
             }
           }
+        }
         const { html, default_name, min_role, domain } = await get_contents({
           page,
           entity_type,
