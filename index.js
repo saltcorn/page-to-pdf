@@ -232,31 +232,6 @@ module.exports = {
         }
         const toMargin = (x) =>
           typeof x === "undefined" || x === null ? "2cm" : `${x}cm`;
-        const { html, default_name, min_role, domain } = await get_contents({
-          page,
-          entity_type,
-          view,
-          statevars,
-          req,
-          referrer,
-          row,
-          table,
-        });
-
-        //console.log(refUrl);
-        //console.log(html);
-        //fs.writeFileSync("pdfhtml.html", html);
-
-        const executablePath = fs.existsSync("/usr/bin/chromium-browser")
-          ? "/usr/bin/chromium-browser"
-          : fs.existsSync("/usr/bin/chromium")
-          ? "/usr/bin/chromium"
-          : fs.existsSync(
-              "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
-            )
-          ? "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
-          : undefined;
-
         let options = {
           css_selector,
           omitBackground: omit_bg,
@@ -286,10 +261,25 @@ module.exports = {
               table,
               only_content: true,
             });
-            options[hdrfoot + "Template"] = `<div class=\"text\">${html}</div>`;
-            options.displayHeaderFooter = true;
+            options[hdrfoot + "Template"] = html;
           }
         }
+        const { html, default_name, min_role, domain } = await get_contents({
+          page,
+          entity_type,
+          view,
+          statevars,
+          req,
+          referrer,
+          row,
+          table,
+          options,
+        });
+
+        //console.log(refUrl);
+        //console.log(html);
+        //fs.writeFileSync("pdfhtml.html", html);
+
         if (req.cookies?.["connect.sid"])
           options.cookie = {
             name: "connect.sid",
@@ -323,6 +313,7 @@ const get_contents = async ({
   row,
   table,
   only_content,
+  options,
 }) => {
   let base, refUrl;
   if (referrer) {
@@ -357,7 +348,13 @@ const get_contents = async ({
     const contents = await thePage.run(qstate, { res: {}, req });
 
     return {
-      html: await renderPage(contents, thePage.title, req, only_content),
+      html: await renderPage(
+        contents,
+        thePage.title,
+        req,
+        only_content,
+        options
+      ),
       default_name: thePage.name,
       min_role: thePage.min_role,
       domain,
@@ -367,7 +364,13 @@ const get_contents = async ({
     if (row && table) qstate[table.pk_name] = row[table.pk_name];
     const contents = await theView.run(qstate, { res: {}, req });
     return {
-      html: await renderPage(contents, theView.name, req, only_content),
+      html: await renderPage(
+        contents,
+        theView.name,
+        req,
+        only_content,
+        options
+      ),
       default_name: theView.name,
       min_role: theView.min_role,
       domain,
@@ -440,7 +443,7 @@ const renderPdfToFile = async (
   });
   return { goto: `/files/serve/${file.path_to_serve}`, target: "_blank" };
 };
-const renderPage = async (contents, pageTitle, req, only_content) => {
+const renderPage = async (contents, pageTitle, req, only_content, options) => {
   const state = getState();
   const layout = state.getLayout(req.user);
   const role = (req.user || {}).role_id || 100;
@@ -483,14 +486,40 @@ const renderPage = async (contents, pageTitle, req, only_content) => {
       headers.push({
         headerTag: state.getConfig("page_custom_html", ""),
       });
-
+    let useContents = contents;
+    if (options?.headerTemplate || options?.footerTemplate) {
+      const bodyHtml = layout.renderBody({
+        title: pageTitle,
+        alerts: [],
+        body: contents,
+        role,
+        req,
+      });
+      useContents = `<table>
+  <thead>
+    <tr><td>
+      <div class="header">${options?.headerTemplate || ""}</div>
+    </td></tr>
+  </thead>
+  <tbody>
+    <tr><td>
+      <div class="content">${bodyHtml}</div>
+    </td></tr>
+  </tbody>
+  <tfoot>
+    <tr><td>
+      <div class="footer">${options?.footerTemplate || ""}</div>
+    </td></tr>
+  </tfoot>
+</table>`;
+    }
     htmlOut = layout.wrap({
       title: pageTitle,
       brand: {},
       menu: [],
       currentUrl: "",
       alerts: [],
-      body: contents,
+      body: useContents,
       headers,
       role,
       req,
@@ -502,3 +531,13 @@ const renderPage = async (contents, pageTitle, req, only_content) => {
   );
   return html1; // .replace("<head>", `<head><base href="${baseUrl}">`);
 };
+
+const executablePath = fs.existsSync("/usr/bin/chromium-browser")
+  ? "/usr/bin/chromium-browser"
+  : fs.existsSync("/usr/bin/chromium")
+  ? "/usr/bin/chromium"
+  : fs.existsSync(
+      "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+    )
+  ? "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+  : undefined;

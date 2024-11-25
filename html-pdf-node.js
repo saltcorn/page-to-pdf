@@ -6,13 +6,11 @@ https://github.com/mrafiqk/html-pdf-node/
 
 const puppeteer = require("@saltcorn/puppeteer-v17");
 const hb = require("handlebars");
-const fs = require("fs").promises
+const fs = require("fs").promises;
 
 module.exports;
 async function generatePdf(file, options) {
   // we are using headless mode
-  console.log("genpdf opts", options);
-  
   let args = ["--no-sandbox", "--disable-setuid-sandbox"];
   if (options.args) {
     args = options.args;
@@ -31,7 +29,8 @@ async function generatePdf(file, options) {
     if (Array.isArray(options.cookie)) await page.setCookie(...options.cookie);
     else await page.setCookie(options.cookie);
   }
-
+  delete options.footerTemplate;
+  delete options.headerTemplate;
   try {
     await page.goto(file.url, {
       waitUntil: "networkidle0", // wait for page to load completely
@@ -43,8 +42,8 @@ async function generatePdf(file, options) {
         type: options.format.toLowerCase(),
       };
       const imageBuffer = await content.screenshot(scopts);
-      if(options.path) {
-        await fs.writeFile(options.path, imageBuffer)
+      if (options.path) {
+        await fs.writeFile(options.path, imageBuffer);
       }
       return imageBuffer;
     } else {
