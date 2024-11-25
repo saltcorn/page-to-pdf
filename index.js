@@ -176,27 +176,18 @@ module.exports = {
             showIf: { format: ["A4", "Letter", "Legal"] },
           },
           {
-            name: "page_numbers",
-            label: "Page numbers",
-            type: "Bool",
-            showIf: { format: ["A4", "Letter", "Legal"] },
-          },
-          {
-            name: "header_height",
-            label: "Header height (cm)",
-            type: "Integer",
-            showIf: {
-              format: ["A4", "Letter", "Legal"],
-              
-            },
-          },
-          {
             name: "footer_height",
             label: "Footer height (cm)",
             type: "Integer",
             showIf: {
-              format: ["A4", "Letter", "Legal"],  
+              format: ["A4", "Letter", "Legal"],
             },
+          },
+          {
+            name: "page_numbers",
+            label: "Page numbers",
+            type: "Bool",
+            showIf: { format: ["A4", "Letter", "Legal"] },
           },
         ];
       },
@@ -278,7 +269,7 @@ module.exports = {
               marginLeft
             )}"><div class="pageNumber"></div></div>`;
           }
-          for (const hdrfoot of ["header", "footer"]) {
+          for (const hdrfoot of ["header", "footer"])
             if (configuration[hdrfoot]) {
               const [hdrEntType, vOrPname] = configuration[hdrfoot].split(":");
               const { html } = await get_contents({
@@ -294,11 +285,10 @@ module.exports = {
                 only_content: true,
               });
               options[hdrfoot + "Html"] = html;
-              if (configuration[hdrfoot + "_height"])
-                options[hdrfoot + "Height"] =
-                  configuration[hdrfoot + "_height"];
             }
-          }
+
+          if (configuration.footer_height)
+            options["footerHeight"] = configuration["footer_height"];
         }
         const { html, default_name, min_role, domain } = await get_contents({
           page,
@@ -532,11 +522,11 @@ const renderPage = async (contents, pageTitle, req, only_content, options) => {
         req,
       });
       //https://medium.com/@Idan_Co/the-ultimate-print-html-template-with-header-footer-568f415f6d2a
-      if (options.headerHeight || options.footerHeight)
+      if (options.footerHeight)
         useContents = `<table>
       <thead>
         <tr><td>
-          <div class="page2pdf-header-space">&nbsp;</div>
+          <div class="header">${options?.headerHtml || ""}</div>          
         </td></tr>
       </thead>
       <tbody>
@@ -549,21 +539,12 @@ const renderPage = async (contents, pageTitle, req, only_content, options) => {
           <div class="page2pdf-footer-space">&nbsp;</div>
         </td></tr>
       </tfoot>
-    </table>
-    <div class="page2pdf-header">${options?.headerHtml || ""}</div>
+    </table>   
     <div class="page2pdf-footer">${options?.footerHtml || ""}</div>
-    <style>
-      .page2pdf-header, .page2pdf-header-space {
-        height: ${options.headerHeight||"3"}cm;
-      }
+    <style>      
       .page2pdf-footer, .page2pdf-footer-space {
-        height: ${options.footerHeight||"3"}cm;        
-      }
-      .page2pdf-header {
-        width: 100%;
-        position: fixed;
-        top: 0;
-      }
+        height: ${options.footerHeight || "3"}cm;        
+      }     
       .page2pdf-footer {
         width: 100%;
         position: fixed;
