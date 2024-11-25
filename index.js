@@ -246,24 +246,25 @@ module.exports = {
           },
           executablePath,
         };
-        for (const hdrfoot of ["header", "footer"]) {
-          if (configuration[hdrfoot]) {
-            const [hdrEntType, vOrPname] = configuration[hdrfoot].split(":");
-            const { html } = await get_contents({
-              page: vOrPname,
-              entity_type: hdrEntType,
-              url,
-              view: vOrPname,
-              statevars,
-              req,
-              referrer,
-              row,
-              table,
-              only_content: true,
-            });
-            options[hdrfoot + "Template"] = html;
+        if (!["PNG", "JPEG", "WebP"].includes(options.format))
+          for (const hdrfoot of ["header", "footer"]) {
+            if (configuration[hdrfoot]) {
+              const [hdrEntType, vOrPname] = configuration[hdrfoot].split(":");
+              const { html } = await get_contents({
+                page: vOrPname,
+                entity_type: hdrEntType,
+                url,
+                view: vOrPname,
+                statevars,
+                req,
+                referrer,
+                row,
+                table,
+                only_content: true,
+              });
+              options[hdrfoot + "Template"] = html;
+            }
           }
-        }
         const { html, default_name, min_role, domain } = await get_contents({
           page,
           entity_type,
