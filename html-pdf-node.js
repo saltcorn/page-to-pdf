@@ -29,8 +29,8 @@ async function generatePdf(file, options) {
     if (Array.isArray(options.cookie)) await page.setCookie(...options.cookie);
     else await page.setCookie(options.cookie);
   }
-  delete options.footerTemplate;
-  delete options.headerTemplate;
+  delete options.footerHtml;
+  delete options.headerHtml;
   try {
     await page.goto(file.url, {
       waitUntil: "networkidle0", // wait for page to load completely

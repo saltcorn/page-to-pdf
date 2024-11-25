@@ -262,7 +262,7 @@ module.exports = {
                 table,
                 only_content: true,
               });
-              options[hdrfoot + "Template"] = html;
+              options[hdrfoot + "Html"] = html;
             }
           }
         const { html, default_name, min_role, domain } = await get_contents({
@@ -488,7 +488,7 @@ const renderPage = async (contents, pageTitle, req, only_content, options) => {
         headerTag: state.getConfig("page_custom_html", ""),
       });
     let useContents = contents;
-    if (options?.headerTemplate || options?.footerTemplate) {
+    if (options?.headerHtml || options?.footerHtml) {
       const bodyHtml = layout.renderBody({
         title: pageTitle,
         alerts: [],
@@ -500,7 +500,7 @@ const renderPage = async (contents, pageTitle, req, only_content, options) => {
       useContents = `<table>
   <thead>
     <tr><td>
-      <div class="header">${options?.headerTemplate || ""}</div>
+      <div class="header">${options?.headerHtml || ""}</div>
     </td></tr>
   </thead>
   <tbody>
@@ -510,7 +510,7 @@ const renderPage = async (contents, pageTitle, req, only_content, options) => {
   </tbody>
   <tfoot>
     <tr><td>
-      <div class="footer">${options?.footerTemplate || ""}</div>
+      <div class="footer">${options?.footerHtml || ""}</div>
     </td></tr>
   </tfoot>
 </table>`;
