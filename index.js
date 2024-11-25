@@ -18,6 +18,13 @@ module.exports = {
     page_to_pdf: {
       configFields: async ({ table, mode }) => {
         let view_options = [];
+
+        const pages = await Page.find();
+        const headerFooterOptions = pages.map((p) => ({
+          name: "Page:" + p.name,
+          label: p.name + " [Page]",
+        }));
+
         const entity_type_options = ["Page"];
         //if (mode !== "trigger") entity_type_options.push("Current URL");
         if (table) {
@@ -25,9 +32,14 @@ module.exports = {
           view_options = (await View.find({ table_id: table.id })).map(
             (v) => v.name
           );
+          headerFooterOptions.push(
+            ...view_options.map((vnm) => ({
+              name: "View:" + vnm,
+              label: vnm + " [View]",
+            }))
+          );
         }
         //entity_type_options.push("URL");
-        const pages = await Page.find();
 
         return [
           {
@@ -149,15 +161,24 @@ module.exports = {
             attributes: { min: 0.0, decimal_places: 1 },
             showIf: { format: ["A4", "Letter", "Legal"] },
           },
+          {
+            name: "header",
+            label: "Header",
+            type: "String",
+            attributes: { options: headerFooterOptions },
+            showIf: { format: ["A4", "Letter", "Legal"] },
+          },
+          {
+            name: "footer",
+            label: "Footer",
+            type: "String",
+            attributes: { options: headerFooterOptions },
+            showIf: { format: ["A4", "Letter", "Legal"] },
+          },
         ];
       },
-      run: async ({
-        row,
-        referrer,
-        user,
-        req,
-        table,
-        configuration: {
+      run: async ({ row, referrer, user, req, table, configuration }) => {
+        const {
           page,
           entity_type,
           url,
@@ -174,8 +195,7 @@ module.exports = {
           marginBottom,
           css_selector,
           omit_bg,
-        },
-      }) => {
+        } = configuration;
         if (!req)
           req = {
             user,
@@ -215,7 +235,6 @@ module.exports = {
         const { html, default_name, min_role, domain } = await get_contents({
           page,
           entity_type,
-          url,
           view,
           statevars,
           req,
@@ -224,10 +243,6 @@ module.exports = {
           table,
         });
 
-        const html1 = html.replaceAll(
-          `<img src="../files/serve`,
-          `<img src="/files/serve`
-        );
         //console.log(refUrl);
         //console.log(html);
         //fs.writeFileSync("pdfhtml.html", html);
@@ -256,6 +271,25 @@ module.exports = {
           },
           executablePath,
         };
+        for (const hdrfoot of ["header", "footer"]) {
+          if (configuration[hdrfoot]) {
+            const [hdrEntType, vOrPname] = configuration[hdrfoot].split(":");
+            const { html } = await get_contents({
+              page: vOrPname,
+              entity_type: hdrEntType,
+              url,
+              view: vOrPname,
+              statevars,
+              req,
+              referrer,
+              row,
+              table,
+              only_content: true,
+            });
+            options[hdrfoot + "Template"] = `<div class=\"text\">${html}</div>`;
+            options.displayHeaderFooter = true;
+          }
+        }
         if (req.cookies?.["connect.sid"])
           options.cookie = {
             name: "connect.sid",
@@ -264,7 +298,7 @@ module.exports = {
           };
         if (to_file)
           return await renderPdfToFile(
-            html1,
+            html,
             req,
             default_name,
             options,
@@ -273,7 +307,7 @@ module.exports = {
             filename,
             min_role
           );
-        else return await renderPdfToStream(html1, req, options, base);
+        else return await renderPdfToStream(html, req, options, base);
       },
     },
   },
@@ -282,13 +316,13 @@ module.exports = {
 const get_contents = async ({
   page,
   entity_type,
-  url,
   view,
   statevars,
   req,
   referrer,
   row,
   table,
+  only_content,
 }) => {
   let base, refUrl;
   if (referrer) {
@@ -321,8 +355,9 @@ const get_contents = async ({
     }
     const thePage = await Page.findOne({ name: page });
     const contents = await thePage.run(qstate, { res: {}, req });
+
     return {
-      html: await renderPage(contents, thePage.title, base, req),
+      html: await renderPage(contents, thePage.title, req, only_content),
       default_name: thePage.name,
       min_role: thePage.min_role,
       domain,
@@ -332,7 +367,7 @@ const get_contents = async ({
     if (row && table) qstate[table.pk_name] = row[table.pk_name];
     const contents = await theView.run(qstate, { res: {}, req });
     return {
-      html: await renderPage(contents, theView.name, base, req),
+      html: await renderPage(contents, theView.name, req, only_content),
       default_name: theView.name,
       min_role: theView.min_role,
       domain,
@@ -405,46 +440,65 @@ const renderPdfToFile = async (
   });
   return { goto: `/files/serve/${file.path_to_serve}`, target: "_blank" };
 };
-const renderPage = async (contents, pageTitle, baseUrl, req) => {
+const renderPage = async (contents, pageTitle, req, only_content) => {
   const state = getState();
   const layout = state.getLayout(req.user);
-  const version_tag = db.connectObj.version_tag;
-  let state_headers = [];
-  if (Array.isArray(state.headers)) {
-    state_headers = state.headers;
-  } else
-    for (const hs of Object.values(state.headers)) {
-      state_headers.push(...hs);
+  const role = (req.user || {}).role_id || 100;
+
+  let htmlOut;
+  if (only_content) {
+    if (typeof contents === "string") htmlOut = contents;
+    else {
+      htmlOut = layout.renderBody({
+        title: pageTitle,
+        alerts: [],
+        body: contents,
+        role,
+        req,
+      });
     }
-  const headers = [
-    ...state_headers,
-    {
-      headerTag: `<script>var _sc_globalCsrf = "${req.csrfToken()}"; 
+  } else {
+    const version_tag = db.connectObj.version_tag;
+    let state_headers = [];
+    if (Array.isArray(state.headers)) {
+      state_headers = state.headers;
+    } else
+      for (const hs of Object.values(state.headers)) {
+        state_headers.push(...hs);
+      }
+    const headers = [
+      ...state_headers,
+      {
+        headerTag: `<script>var _sc_globalCsrf = "${req.csrfToken()}"; 
       var _sc_version_tag = "${version_tag}";      
       </script>`,
-    },
-    { css: `/static_assets/${version_tag}/saltcorn.css` },
-    { script: `/static_assets/${version_tag}/saltcorn.js` },
-    { scriptBody: domReady(`$('.accordion-collapse').addClass("show")`) },
-  ];
-  if (state.getConfig("page_custom_css", ""))
-    headers.push({ style: state.getConfig("page_custom_css", "") });
-  if (state.getConfig("page_custom_html", ""))
-    headers.push({
-      headerTag: state.getConfig("page_custom_html", ""),
-    });
-  const role = (req.user || {}).role_id || 10;
+      },
+      { css: `/static_assets/${version_tag}/saltcorn.css` },
+      { script: `/static_assets/${version_tag}/saltcorn.js` },
+      { scriptBody: domReady(`$('.accordion-collapse').addClass("show")`) },
+    ];
+    if (state.getConfig("page_custom_css", ""))
+      headers.push({ style: state.getConfig("page_custom_css", "") });
+    if (state.getConfig("page_custom_html", ""))
+      headers.push({
+        headerTag: state.getConfig("page_custom_html", ""),
+      });
 
-  const htmlOut = layout.wrap({
-    title: pageTitle,
-    brand: {},
-    menu: [],
-    currentUrl: "",
-    alerts: [],
-    body: contents,
-    headers,
-    role,
-    req,
-  });
-  return htmlOut; // .replace("<head>", `<head><base href="${baseUrl}">`);
+    htmlOut = layout.wrap({
+      title: pageTitle,
+      brand: {},
+      menu: [],
+      currentUrl: "",
+      alerts: [],
+      body: contents,
+      headers,
+      role,
+      req,
+    });
+  }
+  const html1 = htmlOut.replaceAll(
+    `<img src="../files/serve`,
+    `<img src="/files/serve`
+  );
+  return html1; // .replace("<head>", `<head><base href="${baseUrl}">`);
 };

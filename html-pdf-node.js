@@ -11,6 +11,8 @@ const fs = require("fs").promises
 module.exports;
 async function generatePdf(file, options) {
   // we are using headless mode
+  console.log("genpdf opts", options);
+  
   let args = ["--no-sandbox", "--disable-setuid-sandbox"];
   if (options.args) {
     args = options.args;
