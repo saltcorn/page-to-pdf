@@ -189,6 +189,14 @@ module.exports = {
             type: "Bool",
             showIf: { format: ["A4", "Letter", "Legal"] },
           },
+          {
+            name: "custom_page_number_format",
+            label: "Custom format",
+            sublabel:
+              '<a target="_blank" href="https://pptr.dev/api/puppeteer.pdfoptions#headertemplate">Puppeteer PDF footerTemplate</a>',
+            type: "String",
+            showIf: { format: ["A4", "Letter", "Legal"], page_numbers: true },
+          },
         ];
       },
       run: async ({ row, referrer, user, req, table, configuration }) => {
@@ -210,6 +218,7 @@ module.exports = {
           css_selector,
           omit_bg,
           page_numbers,
+          custom_page_number_format,
         } = configuration;
         if (!req)
           req = {
@@ -268,6 +277,7 @@ module.exports = {
             // originally '<div style="text-align: right;width: 297mm;font-size: 8px;"><span style="margin-right: 1cm"><span class="pageNumber"></span> of <span class="totalPages"></span></span></div>';
             // from https://github.com/puppeteer/puppeteer/issues/5345#issuecomment-613023667
             options.footerTemplate =
+              custom_page_number_format ||
               '<div style="text-align: right;width: 100%;font-size: 10px;"><span style="margin-right: 1cm"><span class="pageNumber"></span></span></div>';
           }
           for (const hdrfoot of ["header", "footer"])
