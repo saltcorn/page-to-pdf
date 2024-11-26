@@ -265,9 +265,10 @@ module.exports = {
           if (page_numbers) {
             options.displayHeaderFooter = true;
             options.headerTemplate = " ";
-            options.footerTemplate = `<div class="text" style="margin-left: ${toMargin(
-              marginLeft
-            )}"><div class="pageNumber"></div></div>`;
+            // originally '<div style="text-align: right;width: 297mm;font-size: 8px;"><span style="margin-right: 1cm"><span class="pageNumber"></span> of <span class="totalPages"></span></span></div>';
+            // from https://github.com/puppeteer/puppeteer/issues/5345#issuecomment-613023667
+            options.footerTemplate =
+              '<div style="text-align: right;width: 100%;font-size: 10px;"><span style="margin-right: 1cm"><span class="pageNumber"></span></span></div>';
           }
           for (const hdrfoot of ["header", "footer"])
             if (configuration[hdrfoot]) {
