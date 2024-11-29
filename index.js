@@ -224,7 +224,7 @@ module.exports = {
           req = {
             user,
             getLocale() {
-              return user?.language;
+              return user?.language || "en";
             },
             csrfToken() {
               return "";
