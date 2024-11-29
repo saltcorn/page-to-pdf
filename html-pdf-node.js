@@ -43,6 +43,7 @@ async function generatePdf(file, options) {
         omitBackground: !!options.omitBackground,
         type: options.format.toLowerCase(),
       };
+      if (!content) throw new Error("CSS selector not matched on page");
       const imageBuffer = await content.screenshot(scopts);
       if (options.path) {
         await fs.writeFile(options.path, imageBuffer);
