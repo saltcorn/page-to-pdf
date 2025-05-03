@@ -2,6 +2,7 @@ const Workflow = require("@saltcorn/data/models/workflow");
 const File = require("@saltcorn/data/models/file");
 const Page = require("@saltcorn/data/models/page");
 const View = require("@saltcorn/data/models/view");
+const { eval_expression } = require("@saltcorn/data/models/expression");
 const { getState } = require("@saltcorn/data/db/state");
 const db = require("@saltcorn/data/db");
 const { interpolate } = require("@saltcorn/data/utils");
@@ -57,14 +58,22 @@ module.exports = {
             attributes: { options: pages.map((p) => p.name) },
             showIf: { entity_type: "Page" },
           },
-          {
-            name: "statevars",
-            label: "State variables",
-            type: "String",
-            sublabel:
-              "Which state variable to capture in printed page. Separate by comma.",
-            showIf: { entity_type: "Page" },
-          },
+          mode === "workflow"
+            ? {
+                name: "state_expr",
+                label: "State expression",
+                type: "String",
+                sublabel:
+                  "JavaScript expression for the page state, as an object. Example: <code>{id: book.id}</code>",
+              }
+            : {
+                name: "statevars",
+                label: "State variables",
+                type: "String",
+                sublabel:
+                  "Which state variable to capture in printed page. Separate by comma.",
+                showIf: { entity_type: "Page" },
+              },
           {
             name: "view",
             label: "View",
@@ -199,13 +208,14 @@ module.exports = {
           },
         ];
       },
-      run: async ({ row, referrer, user, req, table, configuration }) => {
+      run: async ({ row, mode, referrer, user, req, table, configuration }) => {
         const {
           page,
           entity_type,
           url,
           view,
           statevars,
+          state_expr,
           to_file,
           filename,
           landscape,
@@ -229,30 +239,38 @@ module.exports = {
             csrfToken() {
               return "";
             },
+            __(s) {
+              return s;
+            },
           };
-        const qstate = {};
-        const xfer_vars = new Set(
-          (statevars || "")
-            .split(",")
-            .map((s) => s.trim())
-            .filter((s) => s)
-        );
+        let qstate = {};
         let base;
+        if (mode === "workflow") {
+          base = getState().getConfig("base_url", "/");
+          qstate = eval_expression(state_expr, row, user);
+        } else {
+          const xfer_vars = new Set(
+            (statevars || "")
+              .split(",")
+              .map((s) => s.trim())
+              .filter((s) => s)
+          );
 
-        if (referrer) {
-          const refUrl = new URL(referrer || "");
+          if (referrer) {
+            const refUrl = new URL(referrer || "");
 
-          for (const [name, value] of refUrl.searchParams) {
-            if (xfer_vars.has(name)) qstate[name] = value;
-          }
-          base = refUrl.origin;
-        } else base = getState().getConfig("base_url", "/");
-        if (row) {
-          xfer_vars.forEach((k) => {
-            if (typeof row[k] !== "undefined") {
-              qstate[k] = row[k];
+            for (const [name, value] of refUrl.searchParams) {
+              if (xfer_vars.has(name)) qstate[name] = value;
             }
-          });
+            base = refUrl.origin;
+          } else base = getState().getConfig("base_url", "/");
+          if (row) {
+            xfer_vars.forEach((k) => {
+              if (typeof row[k] !== "undefined") {
+                qstate[k] = row[k];
+              }
+            });
+          }
         }
         const toMargin = (x) =>
           typeof x === "undefined" || x === null ? "2cm" : `${x}cm`;
