@@ -306,7 +306,7 @@ module.exports = {
                 entity_type: hdrEntType,
                 url,
                 view: vOrPname,
-                statevars,
+                qstate,
                 req,
                 referrer,
                 row,
@@ -323,7 +323,7 @@ module.exports = {
           page,
           entity_type,
           view,
-          statevars,
+          qstate,
           req,
           referrer,
           row,
@@ -362,7 +362,7 @@ const get_contents = async ({
   page,
   entity_type,
   view,
-  statevars,
+  qstate,
   req,
   referrer,
   row,
@@ -377,39 +377,21 @@ const get_contents = async ({
   } else base = getState().getConfig("base_url", "/");
   const domain = base.split("//")[1];
 
-  let qstate = {};
-
   if (!entity_type || entity_type === "Page") {
-    const xfer_vars = new Set(
-      (statevars || "")
-        .split(",")
-        .map((s) => s.trim())
-        .filter((s) => s)
-    );
-
-    if (referrer) {
-      for (const [name, value] of refUrl.searchParams) {
-        if (xfer_vars.has(name)) qstate[name] = value;
-      }
-    }
-    if (row) {
-      xfer_vars.forEach((k) => {
-        if (typeof row[k] !== "undefined") {
-          qstate[k] = row[k];
-        }
-      });
-    }
     const thePage = await Page.findOne({ name: page });
+
     const contents = await thePage.run(qstate, { res: {}, req });
+    const html = await renderPage(
+      contents,
+      thePage.title,
+      req,
+      only_content,
+      options
+    );
+    //console.log({ qstate, html });
 
     return {
-      html: await renderPage(
-        contents,
-        thePage.title,
-        req,
-        only_content,
-        options
-      ),
+      html,
       default_name: thePage.name,
       min_role: thePage.min_role,
       domain,
@@ -478,6 +460,8 @@ const renderPdfToFile = async (
   let tmpFile = File.get_new_path() + ".html";
   options.path = File.get_new_path(the_filename);
   fs.writeFileSync(tmpFile, html);
+  //console.log("render html", html);
+  
   await generatePdf(
     { url: `${ensure_final_slash(base)}files/serve/${path.basename(tmpFile)}` },
     options
@@ -498,6 +482,8 @@ const renderPdfToFile = async (
   });
   return { goto: `/files/serve/${file.path_to_serve}`, target: "_blank" };
 };
+
+
 const renderPage = async (contents, pageTitle, req, only_content, options) => {
   const state = getState();
   const layout = state.getLayout(req.user);
