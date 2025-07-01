@@ -11,7 +11,11 @@ const fs = require("fs").promises;
 module.exports;
 async function generatePdf(file, options) {
   // we are using headless mode
-  let args = ["--no-sandbox", "--disable-setuid-sandbox"];
+  let args = [
+    "--no-sandbox",
+    "--disable-setuid-sandbox",
+    "--ignore-certificate-errors",
+  ];
   if (options.args) {
     args = options.args;
     delete options.args;
@@ -22,6 +26,7 @@ async function generatePdf(file, options) {
   const browser = await puppeteer.launch({
     args: args,
     executablePath: options.executablePath,
+    ignoreHttpsErrors: true,
   });
 
   if (options.executablePath) delete options.executablePath;
