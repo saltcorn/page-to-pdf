@@ -16,6 +16,8 @@ async function generatePdf(file, options) {
     args = options.args;
     delete options.args;
   }
+  if (process.env["HTTPS_PROXY"])
+    args.push(`--proxy-server=${process.env["HTTPS_PROXY"]}`);
 
   const browser = await puppeteer.launch({
     args: args,
