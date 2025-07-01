@@ -7,6 +7,7 @@ https://github.com/mrafiqk/html-pdf-node/
 const puppeteer = require("@saltcorn/puppeteer-v17");
 const hb = require("handlebars");
 const fs = require("fs").promises;
+const { getState } = require("@saltcorn/data/db/state");
 
 module.exports;
 async function generatePdf(file, options) {
@@ -22,6 +23,8 @@ async function generatePdf(file, options) {
   }
   if (process.env["HTTPS_PROXY"])
     args.push(`--proxy-server=${process.env["HTTPS_PROXY"]}`);
+
+  getState().log(6, "page-to-pdf chrome args: " + JSON.stringify(args));
 
   const browser = await puppeteer.launch({
     args: args,
