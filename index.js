@@ -454,14 +454,13 @@ const renderPdfToFile = async (
   min_role
 ) => {
   const the_filename =
-    filename && interpolate && row
-      ? interpolate(filename, row, req?.user)
+    filename && interpolate
+      ? interpolate(filename, row || {}, req?.user)
       : filename || default_name + ".pdf";
   let tmpFile = File.get_new_path() + ".html";
   options.path = File.get_new_path(the_filename);
   fs.writeFileSync(tmpFile, html);
   //console.log("render html", html);
-  
   await generatePdf(
     { url: `${ensure_final_slash(base)}files/serve/${path.basename(tmpFile)}` },
     options
@@ -482,7 +481,6 @@ const renderPdfToFile = async (
   });
   return { goto: `/files/serve/${file.path_to_serve}`, target: "_blank" };
 };
-
 
 const renderPage = async (contents, pageTitle, req, only_content, options) => {
   const state = getState();
