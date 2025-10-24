@@ -425,6 +425,20 @@ const renderPdfToStream = async (html, req, options, base) => {
     }`
   );
   fs.writeFileSync(tmpFile, html);
+
+  //sets the user id, needed to serve
+  await File.create({
+    location: tmpFile,
+    uploaded_at: new Date(),
+    filename: path.basename(tmpFile),
+
+    user_id: (req.user || {}).id,
+    size_kb: 13,// not needed
+    mime_super: "text",
+    mime_sub: "html",
+    min_role_read: 1,
+  });
+  
   const pdfBuffer = await generatePdf({ url }, options);
   fs.unlinkSync(tmpFile);
 
@@ -460,6 +474,20 @@ const renderPdfToFile = async (
   let tmpFile = File.get_new_path() + ".html";
   options.path = File.get_new_path(the_filename);
   fs.writeFileSync(tmpFile, html);
+
+  //sets the user id, needed to serve
+  await File.create({
+    location: tmpFile,
+    uploaded_at: new Date(),
+    filename: path.basename(tmpFile),
+
+    user_id: (req.user || {}).id,
+    size_kb: 13,// not needed
+    mime_super: "text",
+    mime_sub: "html",
+    min_role_read: min_role,
+  });
+  
   //console.log("render html", html);
   await generatePdf(
     { url: `${ensure_final_slash(base)}files/serve/${path.basename(tmpFile)}` },
