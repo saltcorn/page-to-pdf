@@ -301,8 +301,8 @@ module.exports = {
             left: toMargin(marginLeft),
             right: toMargin(marginRight),
           },
-          viewport_height,
-          viewport_width,
+          viewport_height: entity_type === "URL" ? viewport_height : undefined,
+          viewport_width: entity_type === "URL" ? viewport_width : undefined,
           executablePath,
         };
         if (!["PNG", "JPEG", "WebP"].includes(options.format)) {
@@ -339,7 +339,7 @@ module.exports = {
           page,
           entity_type,
           view,
-          url,
+          url: entity_type === "URL" ? url : undefined,
           qstate,
           req,
           referrer,
@@ -368,9 +368,16 @@ module.exports = {
             row,
             filename,
             min_role,
-            url
+            entity_type === "URL" ? url : undefined
           );
-        else return await renderPdfToStream(html, req, options, base, url);
+        else
+          return await renderPdfToStream(
+            html,
+            req,
+            options,
+            base,
+            entity_type === "URL" ? url : undefined
+          );
       },
     },
   },
