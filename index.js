@@ -207,6 +207,18 @@ module.exports = {
             type: "String",
             showIf: { format: ["A4", "Letter", "Legal"], page_numbers: true },
           },
+          {
+            name: "viewport_width",
+            label: "Viewport width (px)",
+            type: "Integer",
+            showIf: { entity_type: "URL", format: ["PNG", "JPEG", "WebP"] },
+          },
+          {
+            name: "viewport_height",
+            label: "Viewport height (px)",
+            type: "Integer",
+            showIf: { entity_type: "URL", format: ["PNG", "JPEG", "WebP"] },
+          },
         ];
       },
       run: async ({ row, mode, referrer, user, req, table, configuration }) => {
@@ -230,6 +242,8 @@ module.exports = {
           omit_bg,
           page_numbers,
           custom_page_number_format,
+          viewport_width,
+          viewport_height,
         } = configuration;
         if (!req)
           req = {
@@ -287,6 +301,8 @@ module.exports = {
             left: toMargin(marginLeft),
             right: toMargin(marginRight),
           },
+          viewport_height,
+          viewport_width,
           executablePath,
         };
         if (!["PNG", "JPEG", "WebP"].includes(options.format)) {
