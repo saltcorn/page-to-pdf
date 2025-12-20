@@ -40,7 +40,8 @@ module.exports = {
             }))
           );
         }
-        //entity_type_options.push("URL");
+
+        entity_type_options.push("URL");
 
         return [
           {
@@ -304,7 +305,6 @@ module.exports = {
               const { html } = await get_contents({
                 page: vOrPname,
                 entity_type: hdrEntType,
-                url,
                 view: vOrPname,
                 qstate,
                 req,
@@ -323,6 +323,7 @@ module.exports = {
           page,
           entity_type,
           view,
+          url,
           qstate,
           req,
           referrer,
@@ -350,9 +351,10 @@ module.exports = {
             base,
             row,
             filename,
-            min_role
+            min_role,
+            url
           );
-        else return await renderPdfToStream(html, req, options, base);
+        else return await renderPdfToStream(html, req, options, base, url);
       },
     },
   },
@@ -362,6 +364,7 @@ const get_contents = async ({
   page,
   entity_type,
   view,
+  url,
   qstate,
   req,
   referrer,
@@ -370,6 +373,7 @@ const get_contents = async ({
   only_content,
   options,
 }) => {
+  if (url) return {};
   let base, refUrl;
   if (referrer) {
     refUrl = new URL(referrer || "");
@@ -415,32 +419,37 @@ const get_contents = async ({
   }
 };
 
-const renderPdfToStream = async (html, req, options, base) => {
-  let tmpFile = File.get_new_path() + ".html";
-  const url = `${base}/files/serve/${path.basename(tmpFile)}`;
+const renderPdfToStream = async (html, req, options, base, url_in) => {
+  let tmpFile;
+  if (!url_in) {
+    tmpFile = File.get_new_path() + ".html";
+    fs.writeFileSync(tmpFile, html);
+    //sets the user id, needed to serve
+    await File.create({
+      location: tmpFile,
+      uploaded_at: new Date(),
+      filename: path.basename(tmpFile),
+
+      user_id: (req.user || {}).id,
+      size_kb: 13, // not needed
+      mime_super: "text",
+      mime_sub: "html",
+      min_role_read: 1,
+    });
+  }
+  const url = url_in || `${base}/files/serve/${path.basename(tmpFile)}`;
   getState().log(
     5,
     `pade-to-pdf to stream file=${tmpFile} url=${url} contents=${
       html?.substring ? html.substring(0, 20) : html
     }`
   );
-  fs.writeFileSync(tmpFile, html);
 
-  //sets the user id, needed to serve
-  await File.create({
-    location: tmpFile,
-    uploaded_at: new Date(),
-    filename: path.basename(tmpFile),
-
-    user_id: (req.user || {}).id,
-    size_kb: 13,// not needed
-    mime_super: "text",
-    mime_sub: "html",
-    min_role_read: 1,
-  });
-  
-  const pdfBuffer = await generatePdf({ url }, options);
-  fs.unlinkSync(tmpFile);
+  const pdfBuffer = await generatePdf(
+    { url, ...(url_in ? { noCookie: true } : {}) },
+    options
+  );
+  if (tmpFile) fs.unlinkSync(tmpFile);
 
   const mimetype = ["PNG", "JPEG", "WebP"].includes(options.format)
     ? `image/${options.format.toLowerCase()}`
@@ -465,36 +474,46 @@ const renderPdfToFile = async (
   base,
   row,
   filename,
-  min_role
+  min_role,
+  url
 ) => {
   const the_filename =
     filename && interpolate
       ? interpolate(filename, row || {}, req?.user)
       : filename || default_name + ".pdf";
-  let tmpFile = File.get_new_path() + ".html";
   options.path = File.get_new_path(the_filename);
-  fs.writeFileSync(tmpFile, html);
+  let tmpFile;
+  if (!url) {
+    tmpFile = File.get_new_path() + ".html";
 
-  //sets the user id, needed to serve
-  await File.create({
-    location: tmpFile,
-    uploaded_at: new Date(),
-    filename: path.basename(tmpFile),
+    fs.writeFileSync(tmpFile, html);
 
-    user_id: (req.user || {}).id,
-    size_kb: 13,// not needed
-    mime_super: "text",
-    mime_sub: "html",
-    min_role_read: min_role,
-  });
-  
+    //sets the user id, needed to serve
+    await File.create({
+      location: tmpFile,
+      uploaded_at: new Date(),
+      filename: path.basename(tmpFile),
+
+      user_id: (req.user || {}).id,
+      size_kb: 13, // not needed
+      mime_super: "text",
+      mime_sub: "html",
+      min_role_read: min_role,
+    });
+  }
+
   //console.log("render html", html);
   await generatePdf(
-    { url: `${ensure_final_slash(base)}files/serve/${path.basename(tmpFile)}` },
+    url
+      ? { url, noCookie: true }
+      : {
+          url: `${ensure_final_slash(base)}files/serve/${path.basename(
+            tmpFile
+          )}`,
+        },
     options
   );
-  fs.unlinkSync(tmpFile);
-  const stats = fs.statSync(options.path);
+  if (tmpFile) fs.unlinkSync(tmpFile);
 
   const file = await File.create({
     location: options.path,
@@ -502,7 +521,7 @@ const renderPdfToFile = async (
     filename: the_filename,
 
     user_id: (req.user || {}).id,
-    size_kb: Math.round(stats.size / 1024),
+    size_kb: 13,
     mime_super: "application",
     mime_sub: "pdf",
     min_role_read: min_role,
