@@ -339,7 +339,10 @@ module.exports = {
           page,
           entity_type,
           view,
-          url: entity_type === "URL" ? url : undefined,
+          url:
+            entity_type === "URL"
+              ? interpolate(url, row || {}, user, "page_to_pdf URL")
+              : undefined,
           qstate,
           req,
           referrer,
@@ -368,7 +371,9 @@ module.exports = {
             row,
             filename,
             min_role,
-            entity_type === "URL" ? url : undefined
+            entity_type === "URL"
+              ? interpolate(url, row || {}, user, "page_to_pdf URL")
+              : undefined
           );
         else
           return await renderPdfToStream(
@@ -376,7 +381,9 @@ module.exports = {
             req,
             options,
             base,
-            entity_type === "URL" ? url : undefined
+            entity_type === "URL"
+              ? interpolate(url, row || {}, user, "page_to_pdf URL")
+              : undefined
           );
       },
     },
