@@ -262,7 +262,7 @@ module.exports = {
         let base;
         if (mode === "workflow") {
           base = getState().getConfig("base_url", "/");
-          qstate = eval_expression(state_expr, row, user);
+          qstate = eval_expression(state_expr || "{}", row, user);
         } else {
           const xfer_vars = new Set(
             (statevars || "")
