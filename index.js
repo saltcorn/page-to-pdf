@@ -361,8 +361,8 @@ module.exports = {
             value: req.cookies["connect.sid"],
             domain,
           };
-        if (to_file)
-          return await renderPdfToFile(
+        if (to_file) {
+          const result = await renderPdfToFile(
             html,
             req,
             default_name,
@@ -375,7 +375,9 @@ module.exports = {
               ? interpolate(url, row || {}, user, "page_to_pdf URL")
               : undefined
           );
-        else
+          if (mode === "workflow") return {};
+          return result;
+        } else
           return await renderPdfToStream(
             html,
             req,
