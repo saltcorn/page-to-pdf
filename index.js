@@ -476,11 +476,10 @@ const renderPdfToStream = async (html, req, options, base, url_in) => {
       html?.substring ? html.substring(0, 20) : html
     }`
   );
-
-  const pdfBuffer = await generatePdf(
-    { url, ...(url_in ? { noCookie: true } : {}) },
-    options
-  );
+  if (url_in && options.cookie && !options.cookie.domain) {
+    try { options.cookie.domain = new URL(url_in).hostname; } catch (e) {}
+  }
+  const pdfBuffer = await generatePdf({ url }, options);
   if (tmpFile) fs.unlinkSync(tmpFile);
 
   const mimetype = ["PNG", "JPEG", "WebP"].includes(options.format)
