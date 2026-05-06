@@ -12,7 +12,7 @@ const { getState } = require("@saltcorn/data/db/state");
 module.exports;
 async function generatePdf(file, options) {
   // we are using headless mode
-  
+
   let args = [
     "--no-sandbox",
     "--disable-setuid-sandbox",
@@ -53,6 +53,8 @@ async function generatePdf(file, options) {
 
   delete options.viewport_height;
   delete options.viewport_width;
+
+  if (!options.timeout) options.timeout = 120*1000;
 
   try {
     await page.goto(file.url, {
