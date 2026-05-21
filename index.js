@@ -15,6 +15,37 @@ const path = require("path");
 
 module.exports = {
   sc_plugin_api_version: 1,
+  contents: [
+    "Renders a Saltcorn View or Page to PDF (or PNG/JPEG) using a headless Chromium browser.",
+    "Use this plugin whenever a task requires generating a PDF — invoices, reports, certificates, etc.",
+    "Do NOT use run_bash_script or any shell command for PDF generation; use this action instead.",
+    "",
+    "Action: page_to_pdf",
+    "Key configuration fields:",
+    "- entity_type: what to render. 'View' to render a table view for a specific row;",
+    "  'Page' to render a named page; 'URL' to render an arbitrary URL.",
+    "- view: name of the View to render (when entity_type = 'View').",
+    "- page: name of the Page to render (when entity_type = 'Page').",
+    "- state_expr: (workflow mode only) JavaScript expression that returns the state object",
+    "  passed to the view/page. Example: {id: row.id} passes the current row's primary key.",
+    "  Use this to render the view for the correct row — e.g. an invoice view for invoice.id.",
+    "- to_file: set true to save the generated PDF to the Saltcorn file store instead of",
+    "  streaming it to the browser. Required when the PDF must be attached to an email or",
+    "  linked to a record's File field.",
+    "- filename: name for the saved file. Supports {field} interpolation from the current row.",
+    "  Example: invoice-{id}.pdf. Defaults to the view/page name + '.pdf'.",
+    "- format: paper size — 'A4' (default), 'Letter', 'Legal' — or image format 'PNG'/'JPEG'.",
+    "",
+    "Workflow usage pattern for generating and saving a PDF for a row:",
+    "1. Add a page_to_pdf step with entity_type='View', view='<invoice_view_name>',",
+    "   state_expr='{id: row.id}', to_file=true, filename='invoice-{id}.pdf'.",
+    "2. The PDF is saved to the file store. In workflow mode the step returns {}.",
+    "3. To link the saved file to a record's File field, add a lookup_rows step on",
+    "   the _sc_files table filtered by filename = 'invoice-{id}.pdf' to get the file id,",
+    "   then use modify_row to set the record's File field to that id.",
+    "4. To email the PDF, use the send_email action and reference the file by its filename",
+    "   or file id obtained in step 3.",
+  ].join("\n"),
   actions: {
     page_to_pdf: {
       configFields: async ({ table, mode }) => {
