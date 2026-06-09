@@ -7,6 +7,7 @@ const { getState } = require("@saltcorn/data/db/state");
 const db = require("@saltcorn/data/db");
 const { interpolate } = require("@saltcorn/data/utils");
 const { domReady } = require("@saltcorn/markup/tags");
+const appConstructorRules = require("./app-constructor-rules");
 
 const { URL } = require("url");
 const { generatePdf } = require("./html-pdf-node");
@@ -15,6 +16,7 @@ const path = require("path");
 
 module.exports = {
   sc_plugin_api_version: 1,
+  app_constructor_rules: appConstructorRules.join("\n"),
   actions: {
     page_to_pdf: {
       configFields: async ({ table, mode }) => {
@@ -375,7 +377,11 @@ module.exports = {
               ? interpolate(url, row || {}, user, "page_to_pdf URL")
               : undefined
           );
-          if (mode === "workflow") return {};
+          if (mode === "workflow")
+            return {
+              pdf_file_id: result.pdf_file_id,
+              pdf_path_to_serve: result.pdf_path_to_serve,
+            };
           return result;
         } else
           return await renderPdfToStream(
@@ -469,7 +475,9 @@ const renderPdfToStream = async (html, req, options, base, url_in) => {
       min_role_read: 1,
     });
   }
-  const url = url_in || `${base}/files/serve/${path.basename(tmpFile)}`;
+  const url =
+    url_in ||
+    `${ensure_final_slash(base)}files/serve/${path.basename(tmpFile)}`;
   getState().log(
     5,
     `pade-to-pdf to stream file=${tmpFile} url=${url} contents=${
@@ -477,7 +485,9 @@ const renderPdfToStream = async (html, req, options, base, url_in) => {
     }`
   );
   if (url_in && options.cookie && !options.cookie.domain) {
-    try { options.cookie.domain = new URL(url_in).hostname; } catch (e) {}
+    try {
+      options.cookie.domain = new URL(url_in).hostname;
+    } catch (e) {}
   }
   const pdfBuffer = await generatePdf({ url }, options);
   if (tmpFile) fs.unlinkSync(tmpFile);
@@ -557,7 +567,12 @@ const renderPdfToFile = async (
     mime_sub: "pdf",
     min_role_read: min_role,
   });
-  return { goto: `/files/serve/${file.path_to_serve}`, target: "_blank" };
+  return {
+    goto: `/files/serve/${file.path_to_serve}`,
+    target: "_blank",
+    pdf_file_id: file.id,
+    pdf_path_to_serve: file.path_to_serve,
+  };
 };
 
 const renderPage = async (contents, pageTitle, req, only_content, options) => {
